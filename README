@@ -1,0 +1,51 @@
+                                 ART
+                       Allotment Routing Table
+
+                           Yoichi Hariguchi
+
+
+
+
+1. Contents
+
+This package includes three ART implementations as follows:
+
+  o ipArt: supports arbitrary address length and arbitrary
+    stride length distribution. `ipArt' uses simple multibit
+    trie.
+  o ipArt-PC supports arbitrary address length and arbitrary
+    stride length distribution. `ipArt-PC' uses path-compressed
+    trie.
+
+`ipArt' and `ipArt-PC' are in the same binary. You can choose
+which one is used when instantiating a routing table.
+
+
+
+2. Files
+
+  Makefile              Makefile
+  README                This file
+  Types.h               Local type definitions
+  ipArt.c               An `ipArt' ART implementation (simple trie)
+  ipArtPathComp.c       An `ipArt-PC' ART implementation
+                        (path-compressed trie)
+  ipArt.h               Header file of `ipArt' and `ipArt-PC'
+  rtTbl-random1.txt     212,030 IPv4 prefixes in the random
+                        order for the route insertion test
+  rtTbl-random2.txt     212,030 IPv4 prefixes in the random
+                        order for the route search test
+  rtTbl-random3.txt     212,030 IPv4 prefixes in the random
+                        order for the route deletion test
+  util.c                utility functions
+
+
+3. Installation
+
+Type `make' to make a test command rtLoookup.
+
+
+4. Interactive Simulation
+
+Type `./rtLookup 4 simple' or `./rtLookup 4 pc' and a menu shows
+up.
