@@ -31,12 +31,16 @@ which one is used when instantiating a routing table.
   ipArtPathComp.c       An `ipArt-PC' ART implementation
                         (path-compressed trie)
   ipArt.h               Header file of `ipArt' and `ipArt-PC'
-  rtTbl-random1.txt     212,030 IPv4 prefixes in the random
-                        order for the route insertion test
-  rtTbl-random2.txt     212,030 IPv4 prefixes in the random
-                        order for the route search test
+  rtTbl-random1.txt     212,030 IPv4 prefixes in random order
+                        for the route insertion test 
+  rtTbl-random2.txt     212,030 IPv4 prefixes in random order
+                        for the route search test 
   rtTbl-random3.txt     212,030 IPv4 prefixes in the random
                         order for the route deletion test
+  v6routes-random1.txt  42,271 IPv6 prefixes in random order
+                        for the route insertion test 
+  v6routes-random2.txt  42,271 IPv6 prefixes in random order
+                        for the route deletion and search test
   util.c                utility functions
 
 
@@ -47,5 +51,121 @@ Type `make' to make a test command rtLoookup.
 
 4. Interactive Simulation
 
-Type `./rtLookup 4 simple' or `./rtLookup 4 pc' and a menu shows
-up.
+  - IPv4 simple trie:          ./rtLookup 4 simple 
+  - IPv4 path-compressed trie: ./rtLookup 4 pc
+  - IPv6 simple trie:          ./rtLookup 6 simple 
+  - IPv6 path-compressed trie: ./rtLookup 6 pc
+
+
+5. Data Structures
+
+5.1. rtTable: Routing Table
+
+`rtTable' is used to represent a routing table. It is not
+necessary for users to access the members of `rtTable'.
+
+
+5.2. routeEnt: Route Entry
+
+The definition of `routeEnt' in `ipArt' and `ipArt-PC' is as
+follows:
+
+  typedef struct routeEnt {
+      u8  dest[16];               /* upto IPv6 */
+      int plen;                   /* prefix length */
+    int level;                  /* for performance */
+  } routeEnt, *pRouteEnt;
+
+`dest' must represent the destination address of the route.
+`plen' must represent the corresponding prefix length.
+The destination address must be stored in the network byte
+order.
+
+
+6. API functions
+
+6.1. Routing Table Creation
+
+rtTable *
+rtArtInit (int nLevels, s8* psl, int alen, trieType type);
+
+ @name  rtArtInit
+
+ @brief API Function.
+        Creates and initializes a routing table.
+        Example usage:
+          - IPv4 routing table
+          - The stride lengths are:
+             level 0: 16 bits
+             level 1:  8 bits
+             level 2:  8 bits
+          - Use a path-compressed trie
+
+         s8      sl[3] = { 16, 8, 8 };
+         rtTable pt    = rtArtInit(3, sl, 32, pathCompTrie);
+
+ @param[in] nLevels The number of trie node levels
+                    (or the number of stride lengths)
+ @param[in] psl     Pointer to an array of stride lengths
+ @param[in] alen    Bit length of IP addresses (32 or 128)
+ @param[in] type    simpleTrie (0) or pathCompTrie (1).
+
+ @retval rtTable* Pointer to the allocated routing table
+ @retval NULL     Failed to allocate a new routing table
+
+Hereafter, let the routing table pointer be:
+
+  rtTable*  pt;   /* Pointer to the routing table */
+
+
+6.2. Insertion
+
+routeEnt*
+pt->insert(rtTable pt, routeEnt* pEnt);
+
+ @brief  API function.
+         Add a route represented by `pEnt' to the routing table `pt'
+
+ @param[in] pt   Pointer to the routing table
+ @param[in] pEnt Pointer to the route added to `pt'.
+                 `pEnt' must NOT point to a local variable.
+
+ @retval routeEnt* `pEnt' is successfully inserted.
+         pEnt      There is an existing route that has the same
+                   IP prefix (address and prefix length).
+                   `pEnt' must be freed in this case.
+
+
+6.3. Deletion
+
+bool
+pt->delete(rtTable pt, u8* dest, int plen);
+
+ @brief  API function.
+         Deletes a route represented by an IP prefix (
+         (address and its prefix length) from the routing table.
+         The matched route entry is freed in this function.
+
+ @param[in] pt    Pointer to the routing table
+ @param[in] pDest Pointer to the IP address to be deleted from `pt'
+ @param[in] plen  Prefix length associated with `pDest'
+
+ @retval ture  If the matching route is deleted from `pt'.
+               The route entry is freed in this function.
+ @retval false If there is no matching route in `pt'.
+
+
+6.4. Longest Prefix Match
+
+routeEnt*
+pt->findMatch(rtTable* pt, u8* pDest);
+
+ @brief  API function.
+         Perform the longest prefix match.
+
+ @param[in] pt          Pointer to the routing table
+ @param[in] pDest       Pointer to the destination IP address
+
+ @retval routeEnt* Pointer to the longest prefix matching route.
+ @retval NULL      There was no matching route for `pDest'
+
