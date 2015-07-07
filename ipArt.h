@@ -50,7 +50,6 @@ typedef struct routeEnt {
     u8  dest[16];               /* upto IPv6 */
     int plen;                   /* prefix length */
     int level;                  /* for performance */
-    int bi;                     /* base index for performance */
 } routeEnt, *pRouteEnt;
 
 
