@@ -5,7 +5,6 @@
 
 #include "ipArt.h"
 
-
 enum {
     SHOWTBLALL = '0',
     SHOWTBL    = '1',
@@ -30,7 +29,6 @@ typedef struct {
 } range;
 
 typedef void (*pInspect)(rtTable* pt, routeEnt* pEnt, int l, u8* pDef);
-
 
 
 int    mask2plen(ipv4a mask);
@@ -199,10 +197,6 @@ main (int argc, char *argv[])
         type = simpleTrie;
     }
 
-    if (ver == 6) {
-        fprintf(stderr, "No IPv6 test function is written yet.\n");
-        exit(1);
-    }
 
     if (argc > 3) {
         /* batch mode. print out performance and quit.
@@ -388,15 +382,19 @@ mkRtTbl (void)
     char* p;
     char  buf[128];
     u8    dest[16];
+    int   af;
     int   plen;
     int   ver;
 
 
     if (Ptable->alen == 32) {
         ver = 4;
+        af  = AF_INET;
         strcpy(buf, "rtTbl-random1.txt");
+        
     } else {
         ver = 6;
+        af  = AF_INET6;
         strcpy(buf, "v6routes-random1.txt");
     }
 
@@ -406,26 +404,18 @@ mkRtTbl (void)
     }
 
     while (fgets(buf, sizeof(buf), fp)) {
-        
         p = index(buf, '/');
         if (p) {
             *p = '\0';
-            inet_a2n(ver, buf, dest);
-            plen = strtol(p+1, NULL, 10);
-        } else {
-            if (fgets(buf, sizeof(buf), fp) == NULL) {
-                panic(("mkRtTbl: no mask info"));
+            if (inet_pton(af, buf, dest) != 1) {
+                fprintf(stderr, "Error: inet_pton(): %s\n", buf);
+                continue;
             }
-            plen = (ver == 4) ?
-                mask2plen(strtoul(buf, NULL, 0)) : strtoul(buf, NULL, 10);
+            plen = strtol(p+1, NULL, 10);
         }
         if (insRoute(dest, plen, 0, 0) == false) {
             inetStr(dest, ver, buf);
             panic(("mkRtTbl: can't add route: %s/%d\n", buf, plen));
-#if 0
-            sprintf(buf, "mkRtTbl: can't add route: %s/%d\n", buf, plen);
-            panic((buf));
-#endif/*0*/
         }
     }
     fclose(fp);
@@ -438,16 +428,16 @@ rmRtTbl (void)
     FILE  *fp;
     char   buf[128];
     u8     dest[16];
+    int    af;
     int    plen;
-    int    ver;
     char*  p;
 
 
     if (Ptable->alen == 32) {
-        ver = 4;
+        af  = AF_INET;
         strcpy(buf, "rtTbl-random3.txt");
     } else {
-        ver = 6;
+        af  = AF_INET6;
         strcpy(buf, "v6routes-random2.txt");
     }
 
@@ -460,23 +450,14 @@ rmRtTbl (void)
         p = index(buf, '/');
         if (p) {
             *p = '\0';
-            inet_a2n(ver, buf, dest);
-            plen = strtol(p+1, NULL, 10);
-        } else { 
-            inet_a2n(ver, buf, dest);
-            if (fgets(buf, sizeof(buf), fp) == NULL) {
-                panic(("rmRtTbl: no mask info"));
+            if (inet_pton(af, buf, dest) != 1) {
+                fprintf(stderr, "Error: inet_pton(): %s\n", buf);
+                continue;
             }
-            plen = (ver == 4) ?
-                mask2plen(strtoul(buf, NULL, 0)) : strtoul(buf, NULL, 10);
+            plen = strtol(p+1, NULL, 10);
         }
         if (!Ptable->delete(Ptable, dest, plen)) {
-            inetStr(dest, ver, buf+64);
-            panic(("rmRtTbl: can't rm route: %s/%d\n", buf+64, plen));
-#if 0
-            sprintf(buf, "rmRtTbl: can't rm route: %s/%d\n", buf+64, plen);
-            panic((buf));
-#endif/*0*/
+            panic(("rmRtTbl: can't rm route: %s/%d\n", buf, plen));
         }
     }
     fclose(fp);
@@ -653,9 +634,10 @@ delRoute (void)
 void
 prRoute (routeEnt *p, void* p2)
 {
-    int i;
     int blen;                   /* byte length */
     range* pr = p2;
+    char s[INET6_ADDRSTRLEN];
+    int af;
 
     assert(p2);
 
@@ -664,16 +646,11 @@ prRoute (routeEnt *p, void* p2)
         if ( memcmp(p->dest, pr->pStart, blen) < 0 ) return;
         if ( memcmp(p->dest, pr->pEnd, blen) > 0 ) return;
     }
-    if ( blen == 4 ) {
-        for ( i = 0; i < (pr->len >> 3) - 1; ++i ) {
-            printf("%d.", p->dest[i]);
-        }
-        printf("%d/%d\n", p->dest[i], p->plen);
+    af = (blen == 4) ? AF_INET : AF_INET6;
+    if (!inet_ntop(af, p->dest, s, sizeof(s))) {
+        perror("inet_ntop()");
     } else {
-        for ( i = 0; i < (pr->len >> 3) - 1; ++i ) {
-            printf("%02x:", p->dest[i]);
-        }
-        printf("%02x/%d\n", p->dest[i], p->plen);
+        printf("%s/%d\n", s, p->plen);
     }
 }
 
