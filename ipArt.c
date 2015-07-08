@@ -122,7 +122,7 @@ rtArtNewSubTable (rtTable* pt, int level, tableEntry base)
 /**
  * @name  rtArtFreeSubTable
  *
- * @brief Free the memory allocated for a subtable (trie node)
+ * @brief Frees the memory allocated for a subtable (trie node)
  *
  * @param[in] t Pointer to the subtable to be freed
  *
@@ -146,6 +146,7 @@ rtArtFreeSubtable (subtable t)
  * @name   rtArtInsert
  *
  * @brief  Inserts route `s' into subtable (trie node) `t'
+ *         of the routing table `pt'
  *
  * @param[in] pt          Pointer to the routing table
  * @param[in] t           Pointer to a subtable (trie node)
@@ -269,7 +270,7 @@ rtArtDelete (rtTable* pt, subtable t, int k,
  * @name   rtArtFindMatch
  *
  * @brief  API function.
- *         Perform the longest prefix match.
+ *         Performs the longest prefix match.
  *
  * @param[in] pt          Pointer to the routing table
  * @param[in] pDest       Pointer to the destination IP address
@@ -314,7 +315,7 @@ rtArtFindMatch (rtTable* pt, u8* pDest)
  * @name   rtArtNewRoute
  *
  * @brief  API function.
- *         Allocate a new route.
+ *         Allocates a new route.
  *
  * @param[in] pt Pointer to the routing table
  *
@@ -337,7 +338,7 @@ rtArtNewRoute (rtTable* pt)
  * @name   rtArtFreeRoute
  *
  * @brief  API function.
- *         Free a route
+ *         Frees a route
  *
  * @param[in] pt Pointer to the routing table
  * @param[in] r  Pointer to the route to be freed
@@ -358,7 +359,7 @@ rtArtFreeRoute (rtTable* pt, routeEnt* r)
  * @name   rtArtInsertRoute
  *
  * @brief  API function.
- *         Add a route represented by `pEnt' to the routing table `pt'
+ *         Adds a route represented by `pEnt' to the routing table `pt'
  *
  * @param[in] pt   Pointer to the routing table
  * @param[in] pEnt Pointer to the route added to `pt'.

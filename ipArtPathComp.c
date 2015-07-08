@@ -97,7 +97,7 @@
 /**
  * @name  strideLen
  *
- * @brief Get the stride length (in bits) of the given trie level
+ * @brief Gets the stride length (in bits) of the given trie level
  *
  * @param[in] pt    Pointer to the routing table
  * @param[in] level Level of subtable (trie node)
@@ -114,7 +114,7 @@ strideLen (rtTable* pt, int level)
 /**
  * @name  addrCpy
  *
- * @brief Copy the given number of bits.
+ * @brief Copies the given number of bits.
  *
  * @param[in] dst   Pointer to the destination bit string
  * @param[in] src   Pointer to the source bit string
@@ -138,6 +138,17 @@ addrCpy (void* dst, void* src, u32 nBits)
 }
 
 
+/**
+ * @name  findSubtable
+ *
+ * @brief Finds the first subtable (trie node) pointer in the
+ *        given subtable
+ *
+ * @param[in] pt Pointer to the routing table
+ * @param[in] t  Pointer to the subtable (trie node) to be searched
+ *
+ * @retval subtable Pointer to the first subtable in `t'
+ */
 static inline subtable
 findSubtable (rtTable* pt, subtable t)
 {
@@ -153,6 +164,21 @@ findSubtable (rtTable* pt, subtable t)
     return NULL;
 }
 
+/**
+ * @name  checkSubtable
+ *
+ * @brief Checks the consistency of a subtable (trie node.)
+ *        This is a function for debugging.
+ *
+ * @param[in] pt      Pointer to the routing table
+ * @param[in] t       Pointer to the subtable (trie node) to be checked
+ * @param[inout] flag Pointer to the flag indicating as follows:
+ *                     *flag == true:  `t[0].nRoutes' is already decremented
+ *                                     by the caller. This function sets
+ *                                     `*flag' to false.
+ *                     *flag == false: `t[0].nRoutes' is NOT decremented
+ *                                     by the caller.
+ */
 static void
 checkSubtable (rtTable* pt, subtable t, bool* flag)
 {
@@ -180,7 +206,7 @@ checkSubtable (rtTable* pt, subtable t, bool* flag)
 
         if ( i == j ) {
             /*
-             * reached the beginning of the next prefix lengh.
+             * Reached the beginning of the next prefix lengh.
              */
             j <<= 1;
             ++plen;
@@ -210,6 +236,12 @@ checkSubtable (rtTable* pt, subtable t, bool* flag)
         }
     }
     if ( *flag ) {
+        /*
+         * Need to decrement `nRoutes' because
+         * `t[0].nRoutes' is decremented by the caller.
+         * Unset `*flag' so that the caller does not have
+         * to check the value of `*flag' and update it.
+         */
         --nRoutes;
         *flag = false;
     }
@@ -226,7 +258,7 @@ checkSubtable (rtTable* pt, subtable t, bool* flag)
 /**
  * @name  rtArtPcNewSubTable
  *
- * @brief Allocate a new subtable (trie node) of the given level.
+ * @brief Allocates a new subtable (trie node) of the given level.
  *
  * @param[in] p     Pointer to the routing table
  * @param[in] level 
@@ -277,7 +309,7 @@ rtArtPcNewSubTable (rtTable* p, int level, tableEntry base, u8* pa)
 /**
  * @name  getNodeDefAddr
  *
- * @brief Get the subtable (trie node) default address
+ * @brief Gets the subtable (trie node) default address
  *
  * @param[in] p Pointer to the routing table
  * @param[in] t Pointer to the beginning of subtable (trie node)
@@ -290,31 +322,52 @@ getNodeDefAddr (rtTable *p, subtable t)
     return (u8*)(t + p->off);
 }
 
+
+/**
+ * @name  rtArtPcFreeSubtable
+ *
+ * @brief Frees the memory allocated for a subtable (trie node)
+ *
+ * @param[in] pt Pointer to the routing table
+ * @param[in] t  Pointer to the subtable to be freed
+ *
+ * @retval tableEntry Subtable default route in the freed subtable.
+ *                    This must be restored in the parent subtable.
+ */
 static inline tableEntry
-rtArtFreeSubtable (rtTable* p, subtable t)
+rtArtPcFreeSubtable (rtTable* pt, subtable t)
 {
     register tableEntry base;   /* heap default route */
 
 
-    assert(p && t);
+    assert(pt && t);
 
     base = t[1];
-    free(t + p->off);
+    free(t + pt->off);
 
     return base;
 }
 
 
-/* Returns level corresponding to plefix length
+/**
+ * @name  plen2level
+ *
+ * @brief Finds the trie level of the given plefix length
+ *
+ * @param[in] pt   Pointer to the routing table
+ * @param[in] plen prefix length
+ *
+ * @retval int The trie level of `plen'
  */
 static inline int
-plen2level (rtTable* p, int plen)
+plen2level (rtTable* pt, int plen)
 {
     int l;
 
+
     l = 0;
     for (;;) {
-        plen -= p->psi[l].sl;
+        plen -= pt->psi[l].sl;
         if ( plen <= 0 ) break;
         ++l;
     }
@@ -325,7 +378,7 @@ plen2level (rtTable* p, int plen)
 /**
  * @name  firstDiffLevel
  *
- * @brief Find the trie level the first difference occurred
+ * @brief Finds the trie level the first difference occurred
  *
  * @param[in] p     Pointer to the routing table
  * @param[in] index p1[index] and p2[index] are the first different bytes.
@@ -360,6 +413,19 @@ firstDiffLevel (rtTable* p, int index, u8* p1, u8* p2)
 }
 
 
+/**
+ * @name  setStartBitPos
+ *
+ * @brief Sets the pointer and bit offset (from bit 7) of the given
+ *        trie level for fringe index calculation.
+ *
+ * @param[in] pt   Pointer to the routing table
+ * @param[in] l    Trie level of the address pointed to by `*p'
+ * @param[inout] p `*p' must point to the beginning of the address
+ *                 as an input. This function updates `*p' pointing to
+ *                 the beginning byte of trie level `l'
+ * @param[out]     Pointer to the bit offset (from bit 7) of `**p'.
+ */
 static inline void
 setStartBitPos (rtTable* pt, u8** p, u32* offset, int l)
 {
@@ -373,17 +439,27 @@ setStartBitPos (rtTable* pt, u8** p, u32* offset, int l)
 }
 
 
-/* rtArtInsert() inserts route `s' into heap `t' of routing table `p'
+/**
+ * @name   rtArtInsert
+ *
+ * @brief  Inserts route `s' into subtable (trie node) `t'
+ *         of the routing table `pt'
+ *
+ * @param[in] pt          Pointer to the routing table
+ * @param[in] t           Pointer to a subtable (trie node)
+ * @param[in] k           Index to start process.
+ *                        `k' must be smaller than `threshold'
+ * @param[in] s           Route pointer to be inserted
+ * @param[in] threshold   The first fringe index of 't'
+ * @param[in] fringeCheck False if `t' is the deepest level. Otherwise true.
+ *
+ * @retval routeEnt* 1. `s' if route pointer `s' is successfully inserted.
+ *                   2. !`s' if there is an existing route.
+ *                      `s' must be freed in this case.
  */
 static inline routeEnt*
-rtArtInsert (rtTable* p,         /* ptr to table */
-             subtable t,         /* ptr to subtable (heap) */
-             int k,              /* index we start process */
-             int threshold,      /* index that fringe begins */
-             bool fringeCheck,   /* can fringe nodes be subtables?
-                                   false only when `t' is at the deepest level
-                                  */
-             routeEnt* s)
+rtArtInsert (rtTable* pt, subtable t, int k,
+             int threshold, bool fringeCheck, routeEnt* s)
 {
     register tableEntry z = t[k];
     register routeEnt *r;
@@ -404,7 +480,7 @@ rtArtInsert (rtTable* p,         /* ptr to table */
     } else {
         t[k].ent = s;
     }
-    p->nRoutes++;
+    pt->nRoutes++;
     return s;
 }
 
@@ -413,7 +489,7 @@ rtArtInsert (rtTable* p,         /* ptr to table */
  * @name  rtArtFindMatch
  *
  * @brief API Function.
- *        Perform the longest prefix match
+ *        Performs the longest prefix match.
  *
  * @param[in] p     Pointer to the routing table
  * @param[in] pDest Pointer to the IP address to be searched for
@@ -450,8 +526,8 @@ rtArtPcFindMatch (rtTable* p, u8* pDest)
         assert(l < ml);
 
         /*
-         * 1. go to the next subtable (trie node)
-         * 2. remember the trie-node default route if exists.
+         * 1. Go to the next subtable (trie node)
+         * 2. Remember the trie-node default route if exists.
          */
         ent = subtablePtr(ent);
         pst = ent.down;
@@ -461,7 +537,7 @@ rtArtPcFindMatch (rtTable* p, u8* pDest)
     }
 
     /*
-     * no match
+     * No match
      */
     if ( !pDefRoute ) {
         return p->root[1].ent;  /* default route */
@@ -479,7 +555,7 @@ AddrComp:
 /**
  * @name  insertNewSubtable
  *
- * @brief Insert a new subtable (trie node)
+ * @brief Inserts a new subtable (trie node)
  *        
  *
  * @param[in] p     Pointer to the routing table
@@ -527,7 +603,7 @@ insertNewSubtable (rtTable* p, routeEnt* pEnt,
         }
         if ( l == level ) {
             /*
-             * one new subtable (trie node) is enough since
+             * One new subtable (trie node) is enough since
              * `pEnt' will be allotted in `nst2' (same level)
              */
             nst = nst2;
@@ -543,7 +619,7 @@ insertNewSubtable (rtTable* p, routeEnt* pEnt,
                 return NULL;
             }
             /*
-             * connect `nst' to `nst2'
+             * Connect `nst' to `nst2'
              */
             pDest = pEnt->dest;
             setStartBitPos(p, &pDest, &offset, level);
@@ -552,8 +628,8 @@ insertNewSubtable (rtTable* p, routeEnt* pEnt,
             nst2[0].nSubtables++;
         }
         /*
-         * 1. connect `nst2' to the existing subtable (trie node)
-         * 2. connect `ent.down' to `nst2'
+         * 1. Connect `nst2' to the existing subtable (trie node)
+         * 2. Connect `ent.down' to `nst2'
          */
         pDest = getNodeDefAddr(p, ent.down);
         setStartBitPos(p, &pDest, &offset, level);
@@ -583,7 +659,7 @@ insertNewSubtable (rtTable* p, routeEnt* pEnt,
  * @name   rtArtPcInsertRoute
  *
  * @brief  API function.
- *         Add a route represented by `pEnt' to the routing table `pt'
+ *         Adds a route represented by `pEnt' to the routing table `pt'
  *
  * @param[in] pt   Pointer to the routing table
  * @param[in] pEnt Pointer to the route added to `pt'.
@@ -814,8 +890,8 @@ rtArtPcDelete (rtTable* pt, pcSubtbls* pPcSt,
             --pPcSt->pst[0].nSubtables;
         }
 
-        r = rtArtFreeSubtable(pt, t).ent; /* r = t[1].ent */
-        t = pPcSt->pst;                   /* update t */
+        r = rtArtPcFreeSubtable(pt, t).ent; /* r = t[1].ent */
+        t = pPcSt->pst;                     /* update t */
     }
 
     if ( r == save ) {
