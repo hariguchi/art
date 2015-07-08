@@ -87,7 +87,7 @@ insRoute (u8* dest, int plen, u8* nh, u32 cid)
         fprintf(stderr, "insRoute: Out of memory\n");
         exit(1);
     }
-    len = (Ptable->alen == 32) ? 4 : 6;
+    len = (Ptable->alen == 32) ? 4 : 16;
     memcpy(p->dest, dest, len);
     p->plen  = plen;
     if ( Ptable->insert(Ptable, p) == p ) return true;
@@ -123,16 +123,9 @@ defineTable (int ver, trieType type, char* sl)
         sum = 32;
     } else {
         sl[0] = 16;
-        sl[1] = 4;
-        sl[2] = 4;
-        sl[3] = 4;
-        sl[4] = 4;
-        sl[5] = 4;
-        sl[6] = 4;
-        sl[7] = 4;
-        sl[8] = 4;
-        i   = 9;
-        sum = 48;
+        memset(sl + 1, 4, 28);
+        i   = 29;
+        sum = 128;
     }
     printf("stride length (default is");
     for ( j = 0; j < i; ++j ) {
@@ -780,7 +773,7 @@ rtInspect (rtTable* pt, pInspect f)
          * p[1].ent will be taken care of when
          * fringe nodes are visited.
          */
-        plen = (l == 0) ? 0 : (pt->psi[l-1].tl + 1);
+        plen = (l == 0) ? 1 : (pt->psi[l-1].tl + 1);
         j = 4;
         pDef = (u8*)(p + pt->off);
         for ( i = 2; i < max; ++i ) {
