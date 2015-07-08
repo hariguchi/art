@@ -46,9 +46,10 @@ void    exactLookup();
 void    addRoute();
 void    delRoute();
 boolean getSearchPerf();
-void    printRoutes(rtTable *p);
-void    printRtTableRange(rtTable* p);
-void    rtInspect(rtTable* p, pInspect f);
+void    printRoutes(rtTable *pt);
+void    printRtTableRange(rtTable* pt);
+void    rtInspect(rtTable* pt, pInspect f);
+void    rtPcInspect(rtTable* pt);
 void    inspectNode (rtTable* pt, routeEnt* pEnt, int l, u8* pDef);
 void    inspectPcNode (rtTable* pt, routeEnt* pEnt, int l, u8* pDef);
 
@@ -282,6 +283,7 @@ main (int argc, char *argv[])
           case INSPECT:
               if ( type == pathCompTrie ) {
                   rtInspect(Ptable, inspectPcNode);
+                  rtPcInspect(Ptable);
               } else {
                   rtInspect(Ptable, inspectNode);
               }
@@ -858,7 +860,7 @@ rtInspect (rtTable* pt, pInspect f)
             }
         }
     }
-    fprintf(stderr, "\n%d routes. %d nodes\n", nRoutes, nNodes);
+    printf("\n%d routes. %d nodes.\n", nRoutes, nNodes);
 }
 
 bool
@@ -881,4 +883,72 @@ prefixCheck (routeEnt* pent, u8* dest)
     if ( (*p1 & mask) != (*dest & mask) ) return false;
 
     return true;
+}
+
+static void
+walk (rtTable* pt, subtable p, int i, int threshold, int n, u32* stat)
+{
+    register routeEnt *pEnt;
+
+    if ( i < 1 ) return;        /* sanity check */
+
+    /*
+     * Fringe index handler (`i' is a fringe index)
+     */
+    if ( i >= threshold ) {
+        if ( isSubtable(p[i]) ) {
+            pEnt = p[(i>>1)].ent; /* parent node (must be non fringe) */
+            p = subtablePtr(p[i]).down;
+            if ( p[1].ent && (pEnt != p[1].ent) ) {
+                assert(p[1].ent->level >= n);
+                ++stat[p[1].ent->level - n];
+            }
+            threshold = 1 << pt->psi[p[-1].level].sl;
+            walk(pt, p, 1, threshold, ++n, stat); /* next level subtable */
+        } else {
+            pEnt = p[i].ent;
+            if ( pEnt && (pEnt != p[(i>>1)].ent) ) {
+                assert(p[i].ent->level >= n);
+                ++stat[p[i].ent->level - n];
+            }
+        }
+        return;
+    }
+
+    /*
+     * Non-fringe index handler (`i' is a non-fringe index.)
+     * `p[1]' is processed by the fringe index handler
+     */
+    pEnt = p[i].ent;
+    if ( pEnt && (i > 1) && (pEnt != p[i>>1].ent) ) {
+        assert(p[i].ent->level >= n);
+        ++stat[p[i].ent->level - n];
+    }
+    i <<= 1;
+    walk(pt, p, i, threshold, n, stat); /* lower left */
+    ++i;
+    walk(pt, p, i, threshold, n, stat); /* lower right */
+}
+
+void
+rtPcInspect (rtTable* pt)
+{
+    u32* stat;
+    u32 sum;
+    int i;
+
+
+    stat = calloc(pt->nLevels, sizeof(*stat));
+    if ( !stat ) {
+        fprintf(stderr, "Error: no memory\n");
+        exit(1);
+    }
+    walk(pt, pt->root, 1, 1 << pt->psi[0].sl, 0, stat);
+    sum = 0;
+    printf("\n");
+    for ( i = 0; i < pt->nLevels; ++i ) {
+        sum += stat[i];
+        printf("%2d: %8d\n", i, stat[i]);
+    }
+    printf("\nTotal: %d\n", sum);
 }
