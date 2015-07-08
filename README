@@ -37,14 +37,15 @@ which one is used when instantiating a routing table.
                         for the route search test 
   rtTbl-random3.txt     212,030 IPv4 prefixes in the random
                         order for the route deletion test
-  v6routes-random1.txt  42,271 IPv6 prefixes in random order
+  v6routes-random1.txt  24,470 IPv6 prefixes in random order
                         for the route insertion test 
-  v6routes-random2.txt  42,271 IPv6 prefixes in random order
+  v6routes-random2.txt  24,470 IPv6 prefixes in random order
                         for the route deletion and search test
   util.c                utility functions
 
-Note: rtTbl-random*.txt are created from the Jul 7, 2015 output
-of 'ip route' at route-views.routeviews.org.
+Note: rtTbl-random*.txt and v6routes-random*.txt are created
+from the Jul 7, 2015 output of 'ip route' and 'ipv6 route'
+respectively at route-views.routeviews.org.
 
 
 3. Installation
