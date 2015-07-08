@@ -124,13 +124,14 @@ rtArtNewSubTable (rtTable* pt, int level, tableEntry base)
  *
  * @brief Frees the memory allocated for a subtable (trie node)
  *
- * @param[in] t Pointer to the subtable to be freed
+ * @param[in] pt Pointer to the routing table
+ * @param[in] t  Pointer to the subtable to be freed
  *
  * @retval tableEntry Subtable default route in the freed subtable.
  *                    This must be restored in the parent subtable.
  */
 static inline tableEntry
-rtArtFreeSubtable (subtable t)
+rtArtFreeSubtable (rtTable* pt, subtable t)
 {
     register tableEntry base;   /* heap default route */
 
@@ -138,6 +139,8 @@ rtArtFreeSubtable (subtable t)
 
     base = t[1];
     free(t - 1);                /* get the beginning address of buffer */
+    ++pt->nSubtblFreed;
+
     return base;
 }
 
@@ -244,10 +247,10 @@ rtArtDelete (rtTable* pt, subtable t, int k,
         /*
          * Counter == 0 and level > 0. Free subtable.
          */
-        r = rtArtFreeSubtable(t).ent; /* r = t[1].ent */
-        pt->pEnt[l]->ent = r;         /* restore heap default route */
+        r = rtArtFreeSubtable(pt, t).ent; /* r = t[1].ent */
+        pt->pEnt[l]->ent = r;   /* restore heap default route */
 
-        t = pt->pTbl[l];              /* set `t' to parent subtable */
+        t = pt->pTbl[l];        /* set `t' to parent subtable */
     }
     if ( r != save ) return save; /* subtable(s) are freed */
 

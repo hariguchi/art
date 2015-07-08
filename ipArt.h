@@ -104,6 +104,7 @@ struct rtTable {
     int  nRoutes;               /* # of routes */
     int* nHeaps;                /* # of heaps at level `i' */
     int* nTransit;              /* # of transit heaps at level `i'  */
+    u32  nSubtblFreed;          /* # of freed subtables (for debugging) */
 };
 
 typedef struct rtArtWalkQnode rtArtWalkQnode;

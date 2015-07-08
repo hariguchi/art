@@ -441,6 +441,7 @@ rmRtTbl (void)
         exit(1);
     }
 
+    Ptable->nSubtblFreed = 0;
     while (fgets(buf, sizeof(buf), fp)) {
         p = index(buf, '/');
         if (p) {
@@ -456,6 +457,7 @@ rmRtTbl (void)
         }
     }
     fclose(fp);
+    printf("%d subtables were freed.\n", Ptable->nSubtblFreed);
 }
 
 
