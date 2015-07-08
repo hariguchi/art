@@ -43,6 +43,9 @@ which one is used when instantiating a routing table.
                         for the route deletion and search test
   util.c                utility functions
 
+Note: rtTbl-random*.txt are created from the Jul 7, 2015 output
+of 'ip route' at route-views.routeviews.org.
+
 
 3. Installation
 
