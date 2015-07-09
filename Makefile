@@ -11,14 +11,16 @@ DEFS += -DDEBUG_FREE_HEAP
 
 
 # make an image to do simple lookup if invoked as `make simple=1'
-#CFLAGS   := -Wall -DPROFILING $(PROF) $(OPTFLAGS)
-CFLAGS   := -Wall $(PROF) $(OPTFLAGS) $(SRCHTEST) $(DEFS)
-LOADLIBES := 
+#CFLAGS    := -Wall -DPROFILING $(PROF) $(OPTFLAGS)
+CFLAGS    := -Wall $(PROF) $(OPTFLAGS) $(SRCHTEST) $(DEFS)
+LDFLAGS   := -L.
+LOADLIBES := -lipart
 OBJDIR := .
 
 
-# Target name
-TARGET := rtLookup
+# Target names
+TARGET    := rtLookup
+LIBTARGET := libipart.a
 
 # Directories to build
 OBJDIR := obj/
@@ -26,29 +28,34 @@ DEPDIR := dep/
 
 
 # Source files
-SRCS4 := ipArt4.c lkupTest4.c util.c
-SRCS6 := ipArt.c ipArtPathComp.c lkupTest.c util.c
-SRCS := $(SRCS6)
+LIBSRCS4 := 
+SRCS4    := 
+LIBSRCS6 := ipArt.c ipArtPathComp.c
+SRCS6    := lkupTest.c util.c
+LIBSRCS  := $(LIBSRCS6)
+SRCS     := $(SRCS6)
 
 # Object files
-OBJS   := $(addprefix $(OBJDIR),$(SRCS:.c=.o))
+LIBOBJS := $(addprefix $(OBJDIR),$(LIBSRCS:.c=.o))
+OBJS    := $(addprefix $(OBJDIR),$(SRCS:.c=.o))
 
 
 # Package files
 PKGSRCS  := README Changelog Makefile Types.h util.c \
-			ipArt.h ipArt.c ipArtPathComp.c lkupTest.c \
-			ipArt4.h ipArt4.c lkupTest4.c
+			ipArt.h ipArt.c ipArtPathComp.c lkupTest.c
 PKGDATA  := ipa.txt rtTbl-random1.txt rtTbl-random2.txt rtTbl-random3.txt \
-			v6ipa.txt v6routes-random1.txt v6routes-random2.txt \
-			mkHist.pl mkStat.pl
+			v6ipa.txt v6routes-random1.txt v6routes-random2.txt
 PKGSRCS  := $(foreach f,$(PKGSRCS),art/$(f))
 PKGDATA  := $(foreach f,$(PKGDATA),art/$(f))
 PKGFILES := $(PKGSRCS) $(PKGDATA)
 
 
-$(TARGET): $(OBJS)
+$(TARGET): $(LIBTARGET) $(OBJS)
 	$(LINK.o) $^ $(LOADLIBES) $(LDLIBS) $(PROF) -o $@
 
+$(LIBTARGET): $(LIBOBJS)
+	$(AR) $(ARFLAGS) $@ $^
+	ranlib $@
 
 
 # Include dependency files
@@ -131,11 +138,10 @@ showstats:
 .PHONY: clean
 clean:
 	$(MAKE) doClean
-	$(MAKE) doClean IPVER=6
 
 .PHONY: doClean
 doClean:
-	rm -f $(TARGET) $(OBJS) *.bak *~
+	rm -f $(TARGET) $(LIBTARGET) $(OBJS) $(LIBOBJS) *.bak *~
 
 .PHONY: tar
 tar:
