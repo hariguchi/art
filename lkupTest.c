@@ -393,12 +393,12 @@ mkRtTbl (void)
     if (Ptable->alen == 32) {
         ver = 4;
         af  = AF_INET;
-        strcpy(buf, "rtTbl-random1.txt");
+        strcpy(buf, "data/v4routes-random1.txt");
         
     } else {
         ver = 6;
         af  = AF_INET6;
-        strcpy(buf, "v6routes-random1.txt");
+        strcpy(buf, "data/v6routes-random1.txt");
     }
 
     if ((fp = fopen(buf, "r")) == NULL) {
@@ -438,10 +438,10 @@ rmRtTbl (void)
 
     if (Ptable->alen == 32) {
         af  = AF_INET;
-        strcpy(buf, "rtTbl-random3.txt");
+        strcpy(buf, "data/v4routes-random3.txt");
     } else {
         af  = AF_INET6;
-        strcpy(buf, "v6routes-random2.txt");
+        strcpy(buf, "data/v6routes-random2.txt");
     }
 
     if ((fp = fopen(buf, "r")) == NULL) {
@@ -470,8 +470,8 @@ rmRtTbl (void)
 
 
 #ifdef SEARCH_TEST
-#define V4FILE "rtTbl-random2.txt"
-#define V6FILE "v6routes-random2.txt"
+#define V4FILE "data/v4routes-random2.txt"
+#define V6FILE "data/v6routes-random2.txt"
 #else /* SEARCH_TEST */
 #define V4FILE "ipa.txt"
 #define V6FILE "v6ipa.txt"
