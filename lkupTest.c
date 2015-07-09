@@ -378,7 +378,7 @@ mkRtTbl (void)
     char  buf[128];
     u8    dest[16];
     int   af;
-    int   plen;
+    int   plen = 0;
     int   ver;
 
 
@@ -424,7 +424,7 @@ rmRtTbl (void)
     char   buf[128];
     u8     dest[16];
     int    af;
-    int    plen;
+    int    plen = 0;
     char*  p;
 
 
