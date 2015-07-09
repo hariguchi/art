@@ -813,7 +813,9 @@ rtArtPcDelete (rtTable* pt, pcSubtbls* pPcSt,
     bool fringeCheck;
     int  k;
     int  threshold;
-    bool flag;                  /* for debugging */
+#ifdef DEBUG_FREE_HEAP
+    bool flag = true;           /* for debugging */
+#endif /* DEBUG_FREE_HEAP */
 
 
     assert(l == plen2level(pt, plen));
@@ -839,7 +841,6 @@ rtArtPcDelete (rtTable* pt, pcSubtbls* pPcSt,
 
     --pt->nRoutes;
     --t[0].nRoutes;
-    flag = true;
     save = r;
     s = ((k >> 1) > 1) ? t[k >> 1].ent : NULL;
     while ( pPcSt > pt->pPcSt ) {

@@ -132,7 +132,9 @@ defineTable (int ver, trieType type, char* sl)
         printf(" %d", sl[j]);
     }
     printf("): ");
-    fgets(buf, 128, stdin);
+    if (!fgets(buf, 128, stdin)) {
+        return NULL;
+    }
     if ( *buf == '\n' ) return rtArtInit(i, sl, sum, type);
 
     sum = 0;
@@ -331,7 +333,9 @@ lookUpRoute (int ver)
 
 
     printf("destination: ");
-    fgets(sIpa, 32, stdin);
+    if (!fgets(sIpa, 32, stdin)) {
+        return;
+    }
     inet_a2n(ver, sIpa, ipa);
     pRtEnt = Ptable->findMatch(Ptable, ipa);
     printf("Key:   %s\n", sIpa);
@@ -356,10 +360,14 @@ printRtTableRange (rtTable* p)
 
     ver = (p->alen == 32) ? 4 : 6;
     printf("start: ");
-    fgets(buf, 32, stdin);
+    if (!fgets(buf, 32, stdin)) {
+        return;
+    }
     inet_a2n(ver, buf, start);
     printf("end: ");
-    fgets(buf, 32, stdin);
+    if (!fgets(buf, 32, stdin)) {
+        return;
+    }
     inet_a2n(ver, buf, end);
 
     r.pStart = start;
@@ -586,10 +594,14 @@ addRoute (void)
 
     ver = (Ptable->alen == 32) ? 4 : 6;
     printf("IP Version is %d\ndestination: ", ver);
-    fgets(buf, 32, stdin);
+    if (!fgets(buf, 32, stdin)) {
+        return;
+    }
     inet_a2n(ver, buf, dest);
     printf("prefix length: ");
-    fgets(buf, 32, stdin);
+    if (!fgets(buf, 32, stdin)) {
+        return;
+    }
     plen = strtol(buf, NULL, 0);
     if ( plen > Ptable->alen ) {
         printf("wrong prefix length (%d). 0 <= prefix length <= %d\n",
@@ -616,10 +628,14 @@ delRoute (void)
 
     ver = (Ptable->alen == 32) ? 4 : 6;
     printf("destination: ");
-    fgets(buf, 32, stdin);
+    if (!fgets(buf, 32, stdin)) {
+        return;
+    }
     inet_a2n(ver, buf, dest);
     printf("prefix length: ");
-    fgets(buf, 32, stdin);
+    if (!fgets(buf, 32, stdin)) {
+        return;
+    }
     plen = strtol(buf, NULL, 0);
 
     if (Ptable->delete(Ptable, dest, plen) == false) {
