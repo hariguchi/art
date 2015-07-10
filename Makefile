@@ -30,7 +30,7 @@ DEPDIR := dep/
 LIBSRCS4 := 
 SRCS4    := 
 LIBSRCS6 := ipArt.c ipArtPathComp.c
-SRCS6    := lkupTest.c util.c
+SRCS6    := lkupTest.c #util.c
 LIBSRCS  := $(LIBSRCS6)
 SRCS     := $(SRCS6)
 

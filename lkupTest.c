@@ -30,18 +30,10 @@ typedef struct {
 
 typedef void (*pInspect)(rtTable* pt, routeEnt* pEnt, int l, u8* pDef);
 
-
-int    mask2plen(ipv4a mask);
-char*  inetStr(u8* add, int ver, char* buf);
-char*  inet_n2a(ipv4na add, char* buf);
-void   inet_a2n(int ver, char* s, u8* buf);
-
-
-
 void    mkRtTbl();
 void    rmRtTbl();
 void    showMenu();
-void    lookUpRoute(int ver);
+void    lookUpRoute(int af);
 void    lookupTest(rtTable *pt);
 void    addRoute();
 void    delRoute();
@@ -63,6 +55,34 @@ rtTable *Ptable = NULL;         /* routing table pointer */
 int NxitHeap[MAX_LEVEL];        /* transit heap stats */
 
 
+static inline int
+getAf (rtTable* pt)
+{
+    switch (pt->alen) {
+    case 32:
+        return AF_INET;
+    case 128:
+        return AF_INET6;
+    default:
+        panic(("wrong address length: %d", pt->alen));
+        return 0;
+    }
+}
+
+
+static inline int
+getVer (rtTable* pt)
+{
+    switch (pt->alen) {
+    case 32:
+        return 4;
+    case 128:
+        return 6;
+    default:
+        panic(("wrong address length: %d", pt->alen));
+        return 0;
+    }
+}
 
 
 #define USAGE \
@@ -178,7 +198,7 @@ showMenu ()
 int
 main (int argc, char *argv[])
 {
-    int      c, sum, ver;
+    int      af, c, sum, ver;
     char     buf[8];
     char     sl[32];
     trieType type;
@@ -186,13 +206,22 @@ main (int argc, char *argv[])
 
     if (argc <= 2) usage();
     ver = strtoul(argv[1], NULL, 0);
-    if ((ver != 4) && (ver != 6)) usage();
+    switch (ver) {
+    case 4:
+        af = AF_INET;
+        break;
+    case 6:
+        af = AF_INET6;
+        break;
+    default:
+        usage();
+        break;
+    }
     if (!strcmp(argv[2], "pc")) {
         type = pathCompTrie;
     } else {
         type = simpleTrie;
     }
-
 
     if (argc > 3) {
         /* batch mode. print out performance and quit.
@@ -284,7 +313,7 @@ main (int argc, char *argv[])
               }
             break;
           case LOOKUP:
-            lookUpRoute(ver);
+            lookUpRoute(af);
             break;
           case ADD:
             addRoute();
@@ -327,24 +356,44 @@ main (int argc, char *argv[])
 
 
 void
-lookUpRoute (int ver)
+lookUpRoute (int af)
 {
-    char          sIpa[32];
-    char          dest[18];
-    u8            ipa[16];
-    pRouteEnt     pRtEnt;
+    char      sIpa[32];
+    u8        ipa[16];
+    pRouteEnt pRtEnt;
 
 
     printf("destination: ");
     if (!fgets(sIpa, 32, stdin)) {
         return;
     }
-    inet_a2n(ver, sIpa, ipa);
+    if ( inet_pton(af, sIpa, ipa) != 1 ) {
+        fprintf(stderr, "Error: inet_pton(): %s\n", sIpa);
+        return;
+    }
     pRtEnt = Ptable->findMatch(Ptable, ipa);
     printf("Key:   %s\n", sIpa);
     if ( pRtEnt ) {
-        inetStr(pRtEnt->dest, ver, dest);
-        printf("Route: %s/%d\n", dest, pRtEnt->plen);
+        if ( !inet_ntop(af, pRtEnt->dest, sIpa, sizeof(sIpa)) ) {
+            if ( af == AF_INET ) {
+                fprintf(stderr, "Error: inet_ntop(): %d.%d.%d.%d/%d\n",
+                        pRtEnt->dest[0], pRtEnt->dest[1], 
+                        pRtEnt->dest[2], pRtEnt->dest[3], pRtEnt->plen);
+            } else {
+                fprintf(stderr,
+                        "Error: inet_ntop(): "
+                        "%02x%02x:%02x%02x:%02x%02x:%02x%02x:"
+                        "%02x%02x:%02x%02x:%02x%02x:%02x%02x/%d\n",
+                        pRtEnt->dest[0], pRtEnt->dest[1], pRtEnt->dest[2],
+                        pRtEnt->dest[3], pRtEnt->dest[4], pRtEnt->dest[5],
+                        pRtEnt->dest[6], pRtEnt->dest[7], pRtEnt->dest[8],
+                        pRtEnt->dest[9], pRtEnt->dest[10], pRtEnt->dest[11],
+                        pRtEnt->dest[12], pRtEnt->dest[13], pRtEnt->dest[14],
+                        pRtEnt->dest[15], pRtEnt->plen);
+            }
+            return;
+        }
+        printf("Route: %s/%d\n", sIpa, pRtEnt->plen);
     } else {
         printf("Route: no route for the key\n");
     }
@@ -354,24 +403,38 @@ lookUpRoute (int ver)
 void
 printRtTableRange (rtTable* p)
 {
-    int   ver;
+    int   af;
     char  buf[32];
     u8    start[16];
     u8    end[16];
     range r;
+    char  *s;
 
-
-    ver = (p->alen == 32) ? 4 : 6;
+    af = getAf(p);
     printf("start: ");
     if (!fgets(buf, 32, stdin)) {
         return;
     }
-    inet_a2n(ver, buf, start);
+    s = index(buf, '\n');
+    if ( s ) {
+        *s = '\0';
+    }
+    if ( inet_pton(af, buf, start) != 1 ) {
+        fprintf(stderr, "Error: inet_pton(): %s\n", buf);
+        return;
+    }
     printf("end: ");
     if (!fgets(buf, 32, stdin)) {
         return;
     }
-    inet_a2n(ver, buf, end);
+    s = index(buf, '\n');
+    if ( s ) {
+        *s = '\0';
+    }
+    if ( inet_pton(af, buf, end) != 1 ) {
+        fprintf(stderr, "Error: inet_pton(): %s\n", buf);
+        return;
+    }
 
     r.pStart = start;
     r.pEnd   = end;
@@ -390,16 +453,13 @@ mkRtTbl (void)
     u8    dest[16];
     int   af;
     int   plen = 0;
-    int   ver;
 
 
     if (Ptable->alen == 32) {
-        ver = 4;
         af  = AF_INET;
         strcpy(buf, "data/v4routes-random1.txt");
         
     } else {
-        ver = 6;
         af  = AF_INET6;
         strcpy(buf, "data/v6routes-random1.txt");
     }
@@ -420,7 +480,6 @@ mkRtTbl (void)
             plen = strtol(p+1, NULL, 10);
         }
         if (insRoute(dest, plen, 0, 0) == false) {
-            inetStr(dest, ver, buf);
             panic(("mkRtTbl: can't add route: %s/%d\n", buf, plen));
         }
     }
@@ -483,105 +542,7 @@ rmRtTbl (void)
 boolean
 getSearchPerf (void)
 {
-    FILE *fp;
-    register boolean rv = true;
-    char  buf[128];
-
-    int ver;
-    u8  dest[16];
-    pRouteEnt pRtEnt;
-
-
-    mkRtTbl();
-
-    /* serach
-     */
-    if ( Ptable->alen == 32 ) {
-        ver = 4;
-        strcpy(buf, V4FILE);
-    } else {
-        ver = 6;
-        strcpy(buf, V6FILE);
-    }
-
-    if ( (fp = fopen(buf, "r")) == NULL ) {
-        printf("No such file: %s\n", buf);
-        exit(1);
-    }
-
-
-
-#ifdef SEARCH_TEST
-    assert(Ptable->nLevels <= MAX_LEVEL);
-
-    while (fgets(buf, 128, fp)) {
-        int   plen;
-        char* p;
-
-        p = index(buf, '/');
-        if (p) {
-            *p = '\0';
-            inet_a2n(ver, buf, dest);
-            plen = strtol(p+1, NULL, 10);
-        } else {
-            inet_a2n(ver, buf, dest);
-            if (fgets(buf, 128, fp) == NULL) {
-                panic(("getSearchPerf: no mask info"));
-            }
-            plen = (ver == 4) ?
-                mask2plen(strtoul(buf, NULL, 10)) : strtoul(buf, NULL, 10);
-        }
-
-        pRtEnt = Ptable->findMatchStat(Ptable, dest);
-        if (pRtEnt == NULL) {
-            inetStr(dest, ver, buf);
-            printf("getSearchPerf: %s/%d not found\n", buf, plen);
-            panic(("should not happen"));
-        }
-        if (memcmp(pRtEnt->dest, dest, ver)) { /* ver == length */
-            inetStr(dest, ver, buf);
-            inetStr(pRtEnt->dest, ver, buf + 64);
-            printf("pRtEnt->dest (%s) != %s\n", buf + 64, buf);
-            panic(("should not happen"));
-        }
-        if (pRtEnt->plen < plen) {
-            inetStr(dest, ver, buf);
-            inetStr(pRtEnt->dest, ver, buf + 64);
-            printf("pRtEnt->dest (%s) != %s\n", buf + 64, buf);
-            printf("pRtEnt->plen (%d) < %d\n", pRtEnt->plen, plen);
-            panic(("should not happen"));
-        }
-    }
-
-    for (ver = 0; ver < Ptable->nLevels; ++ver) {
-        printf("Transit length %2d: %6d\n", ver, NxitHeap[ver]);
-    }
-#else /* SEARCH_TEST */
-    while (fgets(buf, 128, fp)) {
-        inet_a2n(ver, buf, dest);
-        pRtEnt = Ptable->findMatch(Ptable, dest);
-        if (pRtEnt) {
-            if (prefixCheck(pRtEnt, dest) == false) {
-                inetStr(dest, ver, buf);
-                inetStr(pRtEnt->dest, ver, buf + 64);
-                printf("%s is not a part of prefix %s/%d\n",
-                       buf, buf + 64, pRtEnt->plen);
-                panic(("should not happen"));
-            }
-        }
-#if 0
-        if (pRtEnt == NULL) {
-            inetStr(dest, buf);
-            printf("getSearchPerf: no route for %s\n", buf);
-        }
-#endif
-    }
-#endif /* SEARCH_TEST */
-    fclose(fp);
-
-    rmRtTbl();
-
-    return rv;
+    return true;
 }
 
 
@@ -590,22 +551,29 @@ addRoute (void)
 {
     u8        dest[16];
     int       plen;
-    int       ver;
+    int       af;
     char      buf[32];
     routeEnt *pEnt;
     routeEnt *p;
+    char     *s;
 
-    ver = (Ptable->alen == 32) ? 4 : 6;
-    printf("IP Version is %d\ndestination: ", ver);
+    af = getAf(Ptable);
+    printf("IP Version is %d\nprefix (addr/plen): ", getVer(Ptable));
     if (!fgets(buf, 32, stdin)) {
         return;
     }
-    inet_a2n(ver, buf, dest);
-    printf("prefix length: ");
-    if (!fgets(buf, 32, stdin)) {
+    s = index(buf, '/');
+    if (s) {
+        *s = '\0';
+        if (inet_pton(af, buf, dest) != 1) {
+            fprintf(stderr, "Error: inet_pton(): %s\n", buf);
+            return;
+        }
+        plen = strtol(s+1, NULL, 10);
+    } else {
+        fprintf(stderr, "Error: wrong format.\n");
         return;
     }
-    plen = strtol(buf, NULL, 0);
     if ( plen > Ptable->alen ) {
         printf("wrong prefix length (%d). 0 <= prefix length <= %d\n",
                plen, Ptable->alen);
@@ -626,21 +594,28 @@ delRoute (void)
 {
     u8   dest[16];
     int  plen;
-    int  ver;
+    int  af;
     char buf[32];
+    char* s;
 
-    ver = (Ptable->alen == 32) ? 4 : 6;
-    printf("destination: ");
+
+    af = getAf(Ptable);
+    printf("IP Version is %d\nprefix (addr/plen): ", getVer(Ptable));
     if (!fgets(buf, 32, stdin)) {
         return;
     }
-    inet_a2n(ver, buf, dest);
-    printf("prefix length: ");
-    if (!fgets(buf, 32, stdin)) {
+    s = index(buf, '/');
+    if (s) {
+        *s = '\0';
+        if (inet_pton(af, buf, dest) != 1) {
+            fprintf(stderr, "Error: inet_pton(): %s\n", buf);
+            return;
+        }
+        plen = strtol(s+1, NULL, 10);
+    } else {
+        fprintf(stderr, "Error: wrong format.\n");
         return;
     }
-    plen = strtol(buf, NULL, 0);
-
     if (Ptable->delete(Ptable, dest, plen) == false) {
         printf("no such route\n");
     }
