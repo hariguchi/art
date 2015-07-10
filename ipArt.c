@@ -286,6 +286,7 @@ rtArtFindMatch (rtTable* pt, u8* pDest)
 {
     register tableEntry  ent;
     register tableEntry* pst;
+    register routeEnt*   pDefRoute;
     register int         l;
     u32 offset;
 
@@ -293,22 +294,24 @@ rtArtFindMatch (rtTable* pt, u8* pDest)
     pst = pt->root;
     l = 0;
     offset = 0;
+    pDefRoute = NULL;
     for (;;) {
         ent = pst[fringeIndex(&pDest, &offset, pt->psi[l].sl)];
         if ( !ent.ent ) break;
         if ( !isSubtable(ent) ) return ent.ent;
         ent = subtablePtr(ent);
         if ( l >= (pt->nLevels - 1) ) break;
-        pt->pEnt[l++] = ent.down;
+        if ( ent.down[1].ent ) {
+            pDefRoute = ent.down[1].ent;
+        }
         pst = ent.down;
     }
 
     /*
      * No match.
      */
-    while ( --l >= 0 ) {
-        pst = pt->pEnt[l];
-        if ( pst[1].ent ) return pst[1].ent;
+    if ( pDefRoute ) {
+        return pDefRoute;
     }
     return pt->root[1].ent;
 }
