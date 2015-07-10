@@ -537,9 +537,9 @@ rtArtPcFindMatch (rtTable* pt, u8* pDest)
 routeEnt *
 rtArtPcFindExactMatch (rtTable* pt, u8* pDest, int plen)
 {
-    register tableEntry  ent;
+    register tableEntry  ent = {0};
     register tableEntry* pst;
-    register int index;
+    register int index = 0;
     register int l;
     register int ml;            /* max level */
     u8* pAddr;
