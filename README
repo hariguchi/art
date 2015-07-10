@@ -91,7 +91,7 @@ order.
 6.1. Routing Table Creation
 
 rtTable *
-rtArtInit (int nLevels, s8* psl, int alen, trieType type);
+rtArtInit (int nLevels, s8* psl, int alen, trieType type)
 
  @name  rtArtInit
 
@@ -106,7 +106,7 @@ rtArtInit (int nLevels, s8* psl, int alen, trieType type);
           - Use a path-compressed trie
 
          s8      sl[3] = { 16, 8, 8 };
-         rtTable pt    = rtArtInit(3, sl, 32, pathCompTrie);
+         rtTable pt    = rtArtInit(3, sl, 32, pathCompTrie)
 
  @param[in] nLevels The number of trie node levels
                     (or the number of stride lengths)
@@ -125,7 +125,7 @@ Hereafter, let the routing table pointer be:
 6.2. Insertion
 
 routeEnt*
-pt->insert(rtTable pt, routeEnt* pEnt);
+pt->insert(rtTable pt, routeEnt* pEnt)
 
  @brief  API function.
          Add a route represented by `pEnt' to the routing table `pt'
@@ -143,7 +143,7 @@ pt->insert(rtTable pt, routeEnt* pEnt);
 6.3. Deletion
 
 bool
-pt->delete(rtTable pt, u8* dest, int plen);
+pt->delete(rtTable pt, u8* dest, int plen)
 
  @brief  API function.
          Deletes a route represented by an IP prefix (
@@ -162,7 +162,7 @@ pt->delete(rtTable pt, u8* dest, int plen);
 6.4. Longest Prefix Match
 
 routeEnt*
-pt->findMatch(rtTable* pt, u8* pDest);
+pt->findMatch(rtTable* pt, u8* pDest)
 
  @brief  API function.
          Perform the longest prefix match.
@@ -173,3 +173,18 @@ pt->findMatch(rtTable* pt, u8* pDest);
  @retval routeEnt* Pointer to the longest prefix matching route.
  @retval NULL      There was no matching route for `pDest'
 
+
+6.5. Exact Route Match
+
+routeEnt *
+pt->findExactMatch(rtTable* pt, u8* pDest, int plen)
+
+ @brief API Function.
+        Performs the exact match (address + prefix length.)
+
+ @param[in] pt    Pointer to the routing table
+ @param[in] pDest Pointer to the IP address to be searched for
+ @param[in] plen  prefix length of `pDest'
+
+ @retval routeEnt* Pointer to the found route entry (success)
+ @retval NULL      Failed to find a matching route entry
