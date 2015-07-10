@@ -315,6 +315,83 @@ rtArtFindMatch (rtTable* pt, u8* pDest)
 
 
 /**
+ * @name  rtArtFindExactMatch
+ *
+ * @brief API Function.
+ *        Performs the exact match (address + prefix length.)
+ *
+ * @param[in] pt    Pointer to the routing table
+ * @param[in] pDest Pointer to the IP address to be searched for
+ * @param[in] plen  prefix length of `pDest'
+ *
+ * @retval routeEnt* Pointer to the found route entry (success)
+ * @retval NULL      Failed to find a matching route entry
+ */
+routeEnt *
+rtArtFindExactMatch (rtTable* pt, u8* pDest, int plen)
+{
+    register tableEntry  ent;
+    register tableEntry* pst;
+    register int index;
+    register int l;
+    register int ml;            /* max level */
+    u8* pAddr;
+    u32 offset;
+
+
+    pst    = pt->root;
+    pAddr  = pDest;
+    ml     = plen2level(pt, plen);
+    offset = 0;
+    for ( l = 0; l <= ml; ++l ) {
+        index = fringeIndex(&pAddr, &offset, pt->psi[l].sl);
+        ent   = pst[index];
+        if ( !ent.ent ) {
+            /*
+             * Neither route entry nor subtable pointer.
+             * Return the default route pointer.
+             */
+            return pt->root[1].ent;    /* default route */
+        }
+        if ( !isSubtable(ent) ) {
+            goto AddrComp;
+        }
+        if ( l == ml ) {
+            ent.ent = subtablePtr(ent).down[1].ent;
+            break;
+        }
+
+        /*
+         * 1. Go to the next subtable (trie node)
+         * 2. Check the subtable default route. Exit if it exists.
+         */
+        ent = subtablePtr(ent);
+        if ( ent.down[1].ent && (ent.down[1].ent->plen == plen) ) {
+            ent = ent.down[1];
+            goto AddrComp;
+        }
+        pst = ent.down;
+    }
+    assert(1);                  /* should not happen */
+
+AddrComp:
+    while ( index > 0 ) {
+        if ( !ent.ent ) {
+            break;              /* no matching route */
+        }
+        if ( (ent.ent->plen == plen) &&
+             cmpAddr(pDest, ent.ent->dest, ent.ent->plen) ) {
+            return ent.ent;
+        }
+        index >>= 1;
+        ent = pst[index];
+    }
+
+    return pt->root[1].ent;      /* default route */
+}
+
+
+/**
  * @name   rtArtNewRoute
  *
  * @brief  API function.
@@ -755,11 +832,12 @@ rtArtInit (int nLevels, s8* psl, int alen, trieType type)
     if ( pt->nTransit == NULL ) goto 
 #endif/*0*/
 
-    pt->insert    = rtArtInsertRoute;
-    pt->delete    = rtArtDeleteRoute;
-    pt->findMatch = rtArtFindMatch;
+    pt->insert         = rtArtInsertRoute;
+    pt->delete         = rtArtDeleteRoute;
+    pt->findMatch      = rtArtFindMatch;
+    pt->findExactMatch = rtArtFindExactMatch;
 #ifdef SEARCH_TEST
-    pt->findMatchStat = rtArtFindMatchStat;
+    pt->findMatchStat  = rtArtFindMatchStat;
 #endif /* SEARCH_TEST */
 
     return pt;

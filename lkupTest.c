@@ -12,9 +12,9 @@ enum {
     LOOKUP     = '3',
     ADD        = '4',
     DELETE     = '5',
-    EXACT_LKUP = '6',
-    LOAD       = '7',
-    UNLOAD     = '8',
+    LOAD       = '6',
+    UNLOAD     = '7',
+    LKUP_TEST  = '8',
     MAKE_TBL   = '9',
     EXIT       = 0x71,
 
@@ -42,7 +42,7 @@ void    mkRtTbl();
 void    rmRtTbl();
 void    showMenu();
 void    lookUpRoute(int ver);
-void    exactLookup();
+void    lookupTest(rtTable *pt);
 void    addRoute();
 void    delRoute();
 boolean getSearchPerf();
@@ -166,9 +166,9 @@ showMenu ()
     printf("%4d: look up a route\n", LOOKUP - '0');
     printf("%4d: add a route\n", ADD - '0');
     printf("%4d: delete a route\n", DELETE - '0');
-    printf("%4d: exact lookup\n", EXACT_LKUP - '0');
     printf("%4d: load routes\n", LOAD - '0');
     printf("%4d: unload all routes\n", UNLOAD - '0');
+    printf("%4d: lookup test (exact match and LPM)\n", LKUP_TEST - '0');
     printf("%4d: make table\n", MAKE_TBL - '0');
     printf("%4c: exit\n", EXIT);
     printf("Select item: ");
@@ -306,6 +306,9 @@ main (int argc, char *argv[])
                   rmRtTbl();
               }
               break;
+        case LKUP_TEST:
+            lookupTest(Ptable);
+            break;
           case MAKE_TBL:
             if (Ptable) {
                 printf("Routing table already exists\n");
@@ -962,4 +965,47 @@ rtPcInspect (rtTable* pt)
         printf("%2d: %8d\n", i, stat[i]);
     }
     printf("\nTotal: %d\n", sum);
+}
+
+void
+lookupTest (rtTable* pt)
+{
+    routeEnt* pEnt;
+    FILE *fp;
+    char* p;
+    char  buf[128];
+    u8    dest[16];
+    int   af;
+    int   plen = 0;
+
+
+    if (pt->alen == 32) {
+        af  = AF_INET;
+        strcpy(buf, "data/v4routes-random1.txt");
+        
+    } else {
+        af  = AF_INET6;
+        strcpy(buf, "data/v6routes-random1.txt");
+    }
+
+    if ((fp = fopen(buf, "r")) == NULL) {
+        printf("No such file: %s\n", buf);
+        exit(1);
+    }
+
+    while (fgets(buf, sizeof(buf), fp)) {
+        p = index(buf, '/');
+        if (p) {
+            *p = '\0';
+            if (inet_pton(af, buf, dest) != 1) {
+                fprintf(stderr, "Error: inet_pton(): %s\n", buf);
+                continue;
+            }
+            plen = strtol(p+1, NULL, 10);
+        }
+        pEnt = pt->findExactMatch(pt, dest, plen);
+        if ( !pEnt ) {
+            fprintf(stderr, "Error: failed to find %s\n", buf);
+        }
+    }
 }

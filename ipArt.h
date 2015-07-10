@@ -97,6 +97,7 @@ struct rtTable {
     routeEnt* (*insert)(rtTable* p, routeEnt* r);
     bool (*delete)(rtTable* p, u8* pDest, int plen);
     routeEnt* (*findMatch)(rtTable *p, u8* pDest);
+    routeEnt* (*findExactMatch)(rtTable *p, u8* pDest, int plen);
 #ifdef SEARCH_TEST
     routeEnt* (*findMatchStat)(rtTable *p, u8* pDest); /* for testing */
 #endif /* SEARCH_TEST */
@@ -324,6 +325,32 @@ cmpAddr (u8* p1, u8* p2, int plen)
     }
     return true;
 }
+
+/**
+ * @name  plen2level
+ *
+ * @brief Finds the trie level of the given plefix length
+ *
+ * @param[in] pt   Pointer to the routing table
+ * @param[in] plen prefix length
+ *
+ * @retval int The trie level of `plen'
+ */
+static inline int
+plen2level (rtTable* pt, int plen)
+{
+    int l;
+
+
+    l = 0;
+    for (;;) {
+        plen -= pt->psi[l].sl;
+        if ( plen <= 0 ) break;
+        ++l;
+    }
+    return l;
+}
+
 
 /**
  * @name  fringeIndex

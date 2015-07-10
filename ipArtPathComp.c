@@ -351,32 +351,6 @@ rtArtPcFreeSubtable (rtTable* pt, subtable t)
 
 
 /**
- * @name  plen2level
- *
- * @brief Finds the trie level of the given plefix length
- *
- * @param[in] pt   Pointer to the routing table
- * @param[in] plen prefix length
- *
- * @retval int The trie level of `plen'
- */
-static inline int
-plen2level (rtTable* pt, int plen)
-{
-    int l;
-
-
-    l = 0;
-    for (;;) {
-        plen -= pt->psi[l].sl;
-        if ( plen <= 0 ) break;
-        ++l;
-    }
-    return l;
-}
-
-
-/**
  * @name  firstDiffLevel
  *
  * @brief Finds the trie level the first difference occurred
@@ -492,14 +466,14 @@ rtArtInsert (rtTable* pt, subtable t, int k,
  * @brief API Function.
  *        Performs the longest prefix match.
  *
- * @param[in] p     Pointer to the routing table
+ * @param[in] pt    Pointer to the routing table
  * @param[in] pDest Pointer to the IP address to be searched for
  *
  * @retval routeEnt* Pointer to the found route entry (success)
  * @retval NULL      Failed to find a matching route entry
  */
 routeEnt *
-rtArtPcFindMatch (rtTable* p, u8* pDest)
+rtArtPcFindMatch (rtTable* pt, u8* pDest)
 {
     register tableEntry  ent;
     register tableEntry* pst;
@@ -510,18 +484,18 @@ rtArtPcFindMatch (rtTable* p, u8* pDest)
     int ml;                     /* max level */
 
 
-    pst = p->root;
-    ml  = p->nLevels - 1;
+    pst = pt->root;
+    ml  = pt->nLevels - 1;
     pDefRoute = NULL;
     for ( l = pst[-1].level; l <= ml; l = pst[-1].level ) {
         pAddr = pDest;
-        setStartBitPos(p, &pAddr, &offset, l);
-        ent = pst[fringeIndex(&pAddr, &offset, p->psi[l].sl)];
+        setStartBitPos(pt, &pAddr, &offset, l);
+        ent = pst[fringeIndex(&pAddr, &offset, pt->psi[l].sl)];
         if ( !ent.ent ) {
             break;
         }
         if ( !isSubtable(ent) ) {
-            goto AddrComp;
+            return ent.ent;
         }
 
         assert(l < ml);
@@ -540,16 +514,82 @@ rtArtPcFindMatch (rtTable* p, u8* pDest)
     /*
      * No match
      */
-    if ( !pDefRoute ) {
-        return p->root[1].ent;  /* default route */
+    if ( pDefRoute ) {
+        return pDefRoute;
     }
+    return pt->root[1].ent;     /* default route */
+}
+
+
+/**
+ * @name  rtArtFindExactMatch
+ *
+ * @brief API Function.
+ *        Performs the exact match (address + prefix length.)
+ *
+ * @param[in] pt    Pointer to the routing table
+ * @param[in] pDest Pointer to the IP address to be searched for
+ * @param[in] plen  prefix length of `pDest'
+ *
+ * @retval routeEnt* Pointer to the found route entry (success)
+ * @retval NULL      Failed to find a matching route entry
+ */
+routeEnt *
+rtArtPcFindExactMatch (rtTable* pt, u8* pDest, int plen)
+{
+    register tableEntry  ent;
+    register tableEntry* pst;
+    register int index;
+    register int l;
+    register int ml;            /* max level */
+    u8* pAddr;
+    u32 offset;
+
+
+    pst = pt->root;
+    ml  = plen2level(pt, plen);
+    for ( l = pst[-1].level; l <= ml; l = pst[-1].level ) {
+        pAddr = pDest;
+        setStartBitPos(pt, &pAddr, &offset, l);
+        index = fringeIndex(&pAddr, &offset, pt->psi[l].sl);
+        ent   = pst[index];
+        if ( !ent.ent ) {
+            /*
+             * Neither route entry nor subtable pointer.
+             * Return the default route pointer.
+             */
+            return pt->root[1].ent;    /* default route */
+        }
+        if ( !isSubtable(ent) ) {
+            goto AddrComp;
+        }
+        if ( l == ml ) {
+            ent.ent = subtablePtr(ent).down[1].ent;
+            break;
+        }
+
+        /*
+         * Go to the next subtable (trie node)
+         */
+        ent = subtablePtr(ent);
+        pst = ent.down;
+    }
+    assert(1);                  /* should not happen */
 
 AddrComp:
-    if ( cmpAddr(pDest, ent.ent->dest, ent.ent->plen) ) {
-        return ent.ent;
+    while ( index > 0 ) {
+        if ( !ent.ent ) {
+            break;              /* no matching route */
+        }
+        if ( (ent.ent->plen == plen) &&
+             cmpAddr(pDest, ent.ent->dest, ent.ent->plen) ) {
+            return ent.ent;
+        }
+        index >>= 1;
+        ent = pst[index];
     }
 
-    return p->root[1].ent;      /* default route */
+    return pt->root[1].ent;      /* default route */
 }
 
 
@@ -1026,9 +1066,10 @@ rtArtPcInit (rtTable *pt)
     base.ent = NULL;
     pt->root = rtArtPcNewSubTable(pt, 0, base, defAddr);
 
-    pt->insert    = rtArtPcInsertRoute;
-    pt->delete    = rtArtPcDeleteRoute;
-    pt->findMatch = rtArtPcFindMatch;
+    pt->insert         = rtArtPcInsertRoute;
+    pt->delete         = rtArtPcDeleteRoute;
+    pt->findMatch      = rtArtPcFindMatch;
+    pt->findExactMatch = rtArtPcFindExactMatch;
 
     free(defAddr);
     return pt;
