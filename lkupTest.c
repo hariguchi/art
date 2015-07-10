@@ -946,6 +946,7 @@ void
 lookupTest (rtTable* pt)
 {
     routeEnt* pEnt;
+    routeEnt* pEnt2;
     FILE *fp;
     char* p;
     char  buf[128];
@@ -954,7 +955,7 @@ lookupTest (rtTable* pt)
     int   plen = 0;
 
 
-    if (pt->alen == 32) {
+    if ( pt->alen == 32 ) {
         af  = AF_INET;
         strcpy(buf, "data/v4routes-random1.txt");
         
@@ -963,16 +964,16 @@ lookupTest (rtTable* pt)
         strcpy(buf, "data/v6routes-random1.txt");
     }
 
-    if ((fp = fopen(buf, "r")) == NULL) {
+    if ( (fp = fopen(buf, "r")) == NULL ) {
         printf("No such file: %s\n", buf);
         exit(1);
     }
 
-    while (fgets(buf, sizeof(buf), fp)) {
+    while ( fgets(buf, sizeof(buf), fp) ) {
         p = index(buf, '/');
-        if (p) {
+        if ( p ) {
             *p = '\0';
-            if (inet_pton(af, buf, dest) != 1) {
+            if ( inet_pton(af, buf, dest) != 1 ) {
                 fprintf(stderr, "Error: inet_pton(): %s\n", buf);
                 continue;
             }
@@ -980,7 +981,41 @@ lookupTest (rtTable* pt)
         }
         pEnt = pt->findExactMatch(pt, dest, plen);
         if ( !pEnt ) {
-            fprintf(stderr, "Error: failed to find %s\n", buf);
+            fprintf(stderr, "Error: failed to find route: %s\n", buf);
+            continue;
         }
+        if ( af == AF_INET ) {
+            if ( plen < 32 ) {
+            ++dest[3];
+            }
+            if ( !inet_ntop(af, dest, buf, sizeof(buf)) ) {
+                perror("inet_ntop()");
+            }
+        } else {
+            if ( plen < 128 ) {
+                ++dest[15];
+            }
+            if ( !inet_ntop(af, dest, buf, sizeof(buf)) ) {
+                perror("inet_ntop()");
+            }
+        }
+        pEnt2 = pt->findMatch(pt, dest);
+        if ( !pEnt2 ) {
+            fprintf(stderr,
+                    "Error: failed to find matching route: %s\n", buf);
+            continue;
+        }
+        if ( pEnt2->plen < pEnt->plen ) {
+            fprintf(stderr, "Error: failed longest prefix matching\n");
+            if ( !inet_ntop(af, pEnt2->dest, buf, sizeof(buf)) ) {
+                perror("1: inet_ntop()");
+            }
+            fprintf(stderr, "  matched: %s\n", buf);
+            if ( !inet_ntop(af, pEnt->dest, buf, sizeof(buf)) ) {
+                perror("2: inet_ntop()");
+            }
+            fprintf(stderr, "  longer:  %s\n", buf);
+        }
+            
     }
 }
