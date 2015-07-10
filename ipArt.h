@@ -86,7 +86,10 @@ typedef struct rtTable rtTable;
 struct rtTable {
     tableEntry*  root;    /* pointer to root subtable */
     strideInfo*  psi;     /* array of stride information indexed by level */
-    tableEntry** pEnt;    /* array of table entry pointers */
+    union {
+        tableEntry** pEnt;/* array of table entry pointers */
+        routeEnt**   pDef;/* array of subtable (trie node) default routes */
+    };
     subtable*    pTbl;    /* array of subtable pointers (for deletion) */
     pcSubtbls*   pPcSt;   /* array of pcSubtables pointers (for deleteion) */
     s16          alen;    /* address length in bits for search */

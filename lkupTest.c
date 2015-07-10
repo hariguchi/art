@@ -1016,6 +1016,17 @@ lookupTest (rtTable* pt)
             }
             fprintf(stderr, "  longer:  %s\n", buf);
         }
-            
+        if ( !cmpAddr(dest, pEnt2->dest, pEnt2->plen) ) {
+            if ( !inet_ntop(af, dest, buf, sizeof(buf)) ) {
+                perror("3: inet_ntop()");
+                continue;
+            }
+            fprintf(stderr, "  %s ", buf);
+            if ( !inet_ntop(af, pEnt2->dest, buf, sizeof(buf)) ) {
+                perror("4: inet_ntop()");
+                continue;
+            }
+            fprintf(stderr, "does not match %s/%d\n", buf, pEnt2->plen);
+        }
     }
 }

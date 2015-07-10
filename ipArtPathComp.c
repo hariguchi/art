@@ -475,9 +475,9 @@ rtArtInsert (rtTable* pt, subtable t, int k,
 routeEnt *
 rtArtPcFindMatch (rtTable* pt, u8* pDest)
 {
-    register tableEntry  ent;
-    register tableEntry* pst;
-    register routeEnt*   pDefRoute;
+    register tableEntry   ent;
+    register tableEntry*  pst;
+    register routeEnt**   pDefRoute;
     register int l;
     u8* pAddr;
     u32 offset;
@@ -486,7 +486,7 @@ rtArtPcFindMatch (rtTable* pt, u8* pDest)
 
     pst = pt->root;
     ml  = pt->nLevels - 1;
-    pDefRoute = NULL;
+    pDefRoute = pt->pDef;
     for ( l = pst[-1].level; l <= ml; l = pst[-1].level ) {
         pAddr = pDest;
         setStartBitPos(pt, &pAddr, &offset, l);
@@ -495,7 +495,10 @@ rtArtPcFindMatch (rtTable* pt, u8* pDest)
             break;
         }
         if ( !isSubtable(ent) ) {
-            return ent.ent;
+            if ( cmpAddr(pDest, ent.ent->dest, ent.ent->plen) ) {
+                return ent.ent;
+            }
+            break;
         }
 
         assert(l < ml);
@@ -507,15 +510,19 @@ rtArtPcFindMatch (rtTable* pt, u8* pDest)
         ent = subtablePtr(ent);
         pst = ent.down;
         if ( pst[1].ent ) {
-            pDefRoute = pst[1].ent;
+            *pDefRoute++ = pst[1].ent;
         }
     }
 
     /*
      * No match
      */
-    if ( pDefRoute ) {
-        return pDefRoute;
+    while ( --pDefRoute >= pt->pDef ) {
+        assert(*pDefRoute);
+
+        if ( cmpAddr(pDest, (*pDefRoute)->dest, (*pDefRoute)->plen) ) {
+            return *pDefRoute;
+        }
     }
     return pt->root[1].ent;     /* default route */
 }
@@ -1062,6 +1069,10 @@ rtArtPcInit (rtTable *pt)
     if ( !pt->pPcSt ) {
         goto defAddrFree;
     }
+    pt->pDef = calloc(pt->nLevels, sizeof(pt->pDef));
+    if ( !pt->pDef ) {
+        goto pcStFree;
+    }
 
     base.ent = NULL;
     pt->root = rtArtPcNewSubTable(pt, 0, base, defAddr);
@@ -1074,6 +1085,8 @@ rtArtPcInit (rtTable *pt)
     free(defAddr);
     return pt;
 
+pcStFree:
+    free(pt->pPcSt);
 defAddrFree:
     free(defAddr);
 slFree:
