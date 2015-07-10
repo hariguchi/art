@@ -33,11 +33,11 @@ which one is used when instantiating a routing table.
   ipArt.h               Header file of `ipArt' and `ipArt-PC'
   util.c                utility functions
   data/
-   v4routes-random1.txt 212,030 IPv4 prefixes in random order
+   v4routes-random1.txt 569,770 IPv4 prefixes in random order
                         for the route insertion test 
-   v4routes-random2.txt 212,030 IPv4 prefixes in random order
+   v4routes-random2.txt 569,770 IPv4 prefixes in random order
                         for the route search test 
-   v4routes-random3.txt 212,030 IPv4 prefixes in the random
+   v4routes-random3.txt 569,770 IPv4 prefixes in the random
                         order for the route deletion test
    v6routes-random1.txt 24,470 IPv6 prefixes in random order
                         for the route insertion test 
