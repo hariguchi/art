@@ -979,11 +979,20 @@ lookupTest (rtTable* pt)
             }
             plen = strtol(p+1, NULL, 10);
         }
+        /*
+         * Route (`dest', `plen') must exist.
+         */
         pEnt = pt->findExactMatch(pt, dest, plen);
         if ( !pEnt ) {
             fprintf(stderr, "Error: failed to find route: %s\n", buf);
             continue;
         }
+        /*
+         * Perfom the longest prefix match for:
+         *  1. The address represented by `dest' + 1
+         *     if prefix length is neither 32 nor 128
+         *  2. The address represented by `dest' otherwise.
+         */
         if ( af == AF_INET ) {
             if ( plen < 32 ) {
             ++dest[3];
@@ -1005,6 +1014,12 @@ lookupTest (rtTable* pt)
                     "Error: failed to find matching route: %s\n", buf);
             continue;
         }
+        /*
+         * pEnt:  exact matching route
+         * pEnt2: longest prefix matching route
+         *
+         * pEnt2->plen must be >= pEnt->plen
+         */
         if ( pEnt2->plen < pEnt->plen ) {
             fprintf(stderr, "Error: failed longest prefix matching\n");
             if ( !inet_ntop(af, pEnt2->dest, buf, sizeof(buf)) ) {
@@ -1016,6 +1031,10 @@ lookupTest (rtTable* pt)
             }
             fprintf(stderr, "  longer:  %s\n", buf);
         }
+        /*
+         * Double check if the address represented by `dest'
+         * belongs to the route represented by `pEnt2'.
+         */
         if ( !cmpAddr(dest, pEnt2->dest, pEnt2->plen) ) {
             if ( !inet_ntop(af, dest, buf, sizeof(buf)) ) {
                 perror("3: inet_ntop()");
