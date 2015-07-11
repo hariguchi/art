@@ -292,10 +292,9 @@ rtArtFindMatch (rtTable* pt, u8* pDest)
 
 
     pst = pt->root;
-    l = 0;
     offset = 0;
     pDefRoute = NULL;
-    for (;;) {
+    for (l = 0; l < pt->nLevels; ++l ) {
         ent = pst[fringeIndex(&pDest, &offset, pt->psi[l].sl)];
         if ( !ent.ent ) break;
         if ( !isSubtable(ent) ) return ent.ent;

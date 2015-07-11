@@ -60,6 +60,10 @@ $(LIBTARGET): $(LIBOBJS)
 release:
 	$(MAKE) DEFS= OPTFLAGS=-O3
 
+.PHONY: prof
+prof:
+	$(MAKE) DEFS= OPTFLAGS=-O3 PROF=-pg
+
 .PHONY: clean
 clean:
 	rm -f $(TARGET) $(LIBTARGET) $(OBJS) $(LIBOBJS) *.bak *~

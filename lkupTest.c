@@ -30,14 +30,14 @@ typedef struct {
 
 typedef void (*pInspect)(rtTable* pt, routeEnt* pEnt, int l, u8* pDef);
 
-void    mkRtTbl();
-void    rmRtTbl();
+void    mkRtTbl(rtTable* pt);
+void    rmRtTbl(rtTable* pt);
 void    showMenu();
 void    lookUpRoute(int af);
 void    lookupTest(rtTable *pt);
 void    addRoute();
 void    delRoute();
-boolean getSearchPerf();
+boolean getSearchPerf(int alen, trieType type, char* sl, int nLevels);
 void    printRoutes(rtTable *pt);
 void    printRtTableRange(rtTable* pt);
 void    rtInspect(rtTable* pt, pInspect f);
@@ -97,20 +97,20 @@ usage (void)
 
 
 boolean
-insRoute (u8* dest, int plen, u8* nh, u32 cid)
+insRoute (rtTable* pt, u8* dest, int plen, u8* nh, u32 cid)
 {
     routeEnt *p;
     int len;
 
-    p = rtArtNewRoute(Ptable);
+    p = rtArtNewRoute(pt);
     if ( p == NULL ) {
         fprintf(stderr, "insRoute: Out of memory\n");
         exit(1);
     }
-    len = (Ptable->alen == 32) ? 4 : 16;
+    len = (pt->alen == 32) ? 4 : 16;
     memcpy(p->dest, dest, len);
     p->plen  = plen;
-    if ( Ptable->insert(Ptable, p) == p ) return true;
+    if ( pt->insert(pt, p) == p ) return true;
     return false;
 }
 
@@ -245,17 +245,10 @@ main (int argc, char *argv[])
 #endif/*0*/
                 sum = 32;
             } else {
+                c     = 29;
+                sum   = 128;
                 sl[0] = 16;
-                sl[1] = 4;
-                sl[2] = 4;
-                sl[3] = 4;
-                sl[4] = 4;
-                sl[5] = 4;
-                sl[6] = 4;
-                sl[7] = 4;
-                sl[8] = 4;
-                c   = 9;
-                sum = 48;
+                memset(sl + 1, 4, 28);
             }
         } else {
             sum = 0;
@@ -266,16 +259,11 @@ main (int argc, char *argv[])
                 sum += sl[c];
             }
         }
-        if ( ((ver == 4) && (sum != 32)) || ((ver == 6) && (sum != 48)) ) {
+        if ( ((ver == 4) && (sum != 32)) || ((ver == 6) && (sum != 128)) ) {
             fprintf(stderr, "wrong stride lengths (sum = %d)\n", sum);
             exit(1);
         }
-        Ptable = rtArtInit(c, sl, sum, type);
-        if ( Ptable == NULL ) {
-            fprintf(stderr, "can't alloc table\n");
-            exit(1);
-        }
-        if ( getSearchPerf() == false ) {
+        if ( getSearchPerf(sum, type, sl, c) == false ) {
             exit(1);
         }
         exit(0);
@@ -326,13 +314,13 @@ main (int argc, char *argv[])
                 Ptable = defineTable(ver, type, sl);
                 assert(Ptable);
             }
-            mkRtTbl();
+            mkRtTbl(Ptable);
             break;
           case UNLOAD:
               if (Ptable == NULL) {
                 printf("Routing table does not exist\n");
               } else {
-                  rmRtTbl();
+                  rmRtTbl(Ptable);
               }
               break;
         case LKUP_TEST:
@@ -445,7 +433,7 @@ printRtTableRange (rtTable* p)
 
 
 void
-mkRtTbl (void)
+mkRtTbl (rtTable* pt)
 {
     FILE *fp;
     char* p;
@@ -455,7 +443,7 @@ mkRtTbl (void)
     int   plen = 0;
 
 
-    if (Ptable->alen == 32) {
+    if (pt->alen == 32) {
         af  = AF_INET;
         strcpy(buf, "data/v4routes-random1.txt");
         
@@ -479,7 +467,7 @@ mkRtTbl (void)
             }
             plen = strtol(p+1, NULL, 10);
         }
-        if (insRoute(dest, plen, 0, 0) == false) {
+        if (insRoute(pt, dest, plen, 0, 0) == false) {
             panic(("mkRtTbl: can't add route: %s/%d\n", buf, plen));
         }
     }
@@ -488,7 +476,7 @@ mkRtTbl (void)
 
 
 void
-rmRtTbl (void)
+rmRtTbl (rtTable* pt)
 {
     FILE  *fp;
     char   buf[128];
@@ -498,7 +486,7 @@ rmRtTbl (void)
     char*  p;
 
 
-    if (Ptable->alen == 32) {
+    if (pt->alen == 32) {
         af  = AF_INET;
         strcpy(buf, "data/v4routes-random3.txt");
     } else {
@@ -511,7 +499,7 @@ rmRtTbl (void)
         exit(1);
     }
 
-    Ptable->nSubtblFreed = 0;
+    pt->nSubtblFreed = 0;
     while (fgets(buf, sizeof(buf), fp)) {
         p = index(buf, '/');
         if (p) {
@@ -522,12 +510,12 @@ rmRtTbl (void)
             }
             plen = strtol(p+1, NULL, 10);
         }
-        if (!Ptable->delete(Ptable, dest, plen)) {
+        if (!pt->delete(pt, dest, plen)) {
             panic(("rmRtTbl: can't rm route: %s/%d\n", buf, plen));
         }
     }
     fclose(fp);
-    printf("%d subtables were freed.\n", Ptable->nSubtblFreed);
+    printf("%d subtables were freed.\n", pt->nSubtblFreed);
 }
 
 
@@ -540,8 +528,18 @@ rmRtTbl (void)
 #endif /* SEARCH_TEST */
 
 boolean
-getSearchPerf (void)
+getSearchPerf (int alen, trieType type, char* sl, int nLevels)
 {
+    rtTable* pt;
+
+    pt = rtArtInit(nLevels, sl, alen, type);
+    if ( !pt ) {
+        return false;
+    }
+    mkRtTbl(pt);
+    lookupTest(pt);
+    rmRtTbl(pt);
+
     return true;
 }
 
@@ -1025,11 +1023,11 @@ lookupTest (rtTable* pt)
             if ( !inet_ntop(af, pEnt2->dest, buf, sizeof(buf)) ) {
                 perror("1: inet_ntop()");
             }
-            fprintf(stderr, "  matched: %s\n", buf);
+            fprintf(stderr, "  matched: %s/%d\n", buf, pEnt2->plen);
             if ( !inet_ntop(af, pEnt->dest, buf, sizeof(buf)) ) {
                 perror("2: inet_ntop()");
             }
-            fprintf(stderr, "  longer:  %s\n", buf);
+            fprintf(stderr, "  longer:  %s/%d\n", buf, pEnt->plen);
         }
         /*
          * Double check if the address represented by `dest'
