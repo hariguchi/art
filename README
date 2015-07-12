@@ -26,12 +26,18 @@ which one is used when instantiating a routing table.
 
   Makefile              Makefile
   README                This file
+  test.sh               Runs addition, longest prefix match, exact match,
+                        and deletion tests as follows:
+                          1. Simple trie with 569,770 IPv4 prefixes
+                          2. Path-compressed trie with 569,770 IPv4 prefixes
+                          3. Simple trie with 24,470 IPv4 prefixes
+                          4. Path-compressed trie with 24,470 IPv4 prefixes
   Types.h               Local type definitions
   ipArt.c               An `ipArt' ART implementation (simple trie)
   ipArtPathComp.c       An `ipArt-PC' ART implementation
                         (path-compressed trie)
   ipArt.h               Header file of `ipArt' and `ipArt-PC'
-  util.c                utility functions
+  util.c                utility functions (obsolete)
   data/
    v4routes-random1.txt 569,770 IPv4 prefixes in random order
                         for the route insertion test 
@@ -46,7 +52,7 @@ which one is used when instantiating a routing table.
 
 Note: v{4,6}routes-random*.txt are created from the Jul 7, 2015
 output of 'ip route' and 'ipv6 route' respectively at
-route-views.routeviews.org.
+telnet://route-views.routeviews.org.
 
 
 3. Installation

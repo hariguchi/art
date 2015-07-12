@@ -139,7 +139,7 @@ rtArtFreeSubtable (rtTable* pt, subtable t)
 
     base = t[1];
     free(t - 1);                /* get the beginning address of buffer */
-    ++pt->nSubtblFreed;
+    ++pt->nSubtablesFreed;
 
     return base;
 }

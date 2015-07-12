@@ -28,6 +28,12 @@ typedef struct {
     int len;                    /* address bit length */
 } range;
 
+typedef struct rtStats rtStats;
+struct rtStats {
+    u32 nRoutes;
+    u32 nSubtables;
+};
+
 typedef void (*pInspect)(rtTable* pt, routeEnt* pEnt, int l, u8* pDef);
 
 u32     mkRtTbl(rtTable* pt);
@@ -40,7 +46,7 @@ void    delRoute();
 boolean getSearchPerf(int alen, trieType type, char* sl, int nLevels);
 void    printRoutes(rtTable *pt);
 void    printRtTableRange(rtTable* pt);
-void    rtInspect(rtTable* pt, pInspect f);
+void    rtInspect(rtTable* pt, rtStats* pstats, pInspect f);
 void    rtPcInspect(rtTable* pt);
 void    inspectNode (rtTable* pt, routeEnt* pEnt, int l, u8* pDef);
 void    inspectPcNode (rtTable* pt, routeEnt* pEnt, int l, u8* pDef);
@@ -294,10 +300,10 @@ main (int argc, char *argv[])
             break;
           case INSPECT:
               if ( type == pathCompTrie ) {
-                  rtInspect(Ptable, inspectPcNode);
+                  rtInspect(Ptable, NULL, inspectPcNode);
                   rtPcInspect(Ptable);
               } else {
-                  rtInspect(Ptable, inspectNode);
+                  rtInspect(Ptable, NULL, inspectNode);
               }
             break;
           case LOOKUP:
@@ -503,7 +509,7 @@ rmRtTbl (rtTable* pt)
         exit(1);
     }
 
-    pt->nSubtblFreed = 0;
+    pt->nSubtablesFreed = 0;
     while (fgets(buf, sizeof(buf), fp)) {
         p = index(buf, '/');
         if (p) {
@@ -519,7 +525,7 @@ rmRtTbl (rtTable* pt)
         }
     }
     fclose(fp);
-    printf("%d subtables were freed.\n", pt->nSubtblFreed);
+    printf("%d subtables were freed.\n", pt->nSubtablesFreed);
 }
 
 
@@ -535,25 +541,40 @@ boolean
 getSearchPerf (int alen, trieType type, char* sl, int nLevels)
 {
     rtTable* pt;
+    rtStats  stats;
+    u32      nRoutes;
+    boolean  rc = true;
 
     pt = rtArtInit(nLevels, sl, alen, type);
     if ( !pt ) {
+        fprintf(stderr, "ERROR: failed to create a routing table.\n");
         return false;
     }
-    printf("Inserted %d routes to the routing table.\n", mkRtTbl(pt));
+    nRoutes = mkRtTbl(pt);
+    printf("Inserted %d routes to the routing table.\n", nRoutes);
     printf("\nInspect the routing table: ");
     if ( type == pathCompTrie ) {
-        rtInspect(pt, inspectPcNode);
+        rtInspect(pt, &stats, inspectPcNode);
         rtPcInspect(pt);
     } else {
-        rtInspect(pt, inspectNode);
+        rtInspect(pt, &stats, inspectNode);
     }
     printf("\nExact and longest prefix matching test: ");
     lookupTest(pt);
     printf("done.\n\nRemove all the prefixes: ");
     rmRtTbl(pt);
 
-    return true;
+    if ( stats.nRoutes != nRoutes ) {
+        fprintf(stderr, "ERROR: %d routes were inserted. "
+                "%d were found.\n", nRoutes, stats.nRoutes);
+        rc = false;
+    }
+    if ( stats.nSubtables != pt->nSubtablesFreed ) {
+        fprintf(stderr, "ERROR: %d subtables (trie nodes) were inserted. "
+                "%d were freed.\n", stats.nSubtables, pt->nSubtablesFreed);
+        rc = false;
+    }
+    return rc;
 }
 
 
@@ -731,7 +752,7 @@ inspectNode (rtTable* pt, routeEnt* pEnt, int l, u8* pDef)
 #endif /* __SIZEOF_POINTER__ */
 
 void
-rtInspect (rtTable* pt, pInspect f)
+rtInspect (rtTable* pt, rtStats* pStats, pInspect f)
 {
     dllHead  q;
     subtable p;
@@ -864,6 +885,10 @@ rtInspect (rtTable* pt, pInspect f)
      * Subtract pt->root as subtable (i.e. '-1' is for pt->root)
      */
     printf("%d routes. %d subtables (trie nodes).\n", nRoutes, nNodes - 1);
+    if ( pStats ) {
+        pStats->nRoutes    = nRoutes;
+        pStats->nSubtables = nNodes - 1;
+    }
 }
 
 bool

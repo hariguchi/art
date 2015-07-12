@@ -105,10 +105,10 @@ struct rtTable {
     routeEnt* (*findMatchStat)(rtTable *p, u8* pDest); /* for testing */
 #endif /* SEARCH_TEST */
 
-    int  nRoutes;               /* # of routes */
-    int* nHeaps;                /* # of heaps at level `i' */
-    int* nTransit;              /* # of transit heaps at level `i'  */
-    u32  nSubtblFreed;          /* # of freed subtables (for debugging) */
+    int  nRoutes;           /* # of routes */
+    int* nHeaps;            /* # of heaps at level `i' */
+    int* nTransit;          /* # of transit heaps at level `i'  */
+    u32  nSubtablesFreed;   /* # of freed subtables (for debugging) */
 };
 
 typedef struct rtArtWalkQnode rtArtWalkQnode;
