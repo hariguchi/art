@@ -60,6 +60,11 @@ $(LIBTARGET): $(LIBOBJS)
 release:
 	$(MAKE) DEFS= OPTFLAGS=-O3
 
+.PHONY: test
+test:
+	$(MAKE) clean release
+	./tests.sh
+
 .PHONY: prof
 prof:
 	$(MAKE) DEFS= OPTFLAGS=-O3 PROF=-pg
