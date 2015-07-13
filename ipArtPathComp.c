@@ -1,4 +1,7 @@
-/**
+/** @file ipArtPathComp.c
+    @brif Allotment Routing Table with path-compressed trie
+
+
    ART: Allotment Routing Table
 
    Copyright (c) 2001-2015
@@ -461,7 +464,7 @@ rtArtInsert (rtTable* pt, subtable t, int k,
 
 
 /**
- * @name  rtArtFindMatch
+ * @name  rtArtPcFindMatch
  *
  * @brief API Function.
  *        Performs the longest prefix match.
@@ -529,7 +532,7 @@ rtArtPcFindMatch (rtTable* pt, u8* pDest)
 
 
 /**
- * @name  rtArtFindExactMatch
+ * @name  rtArtPcFindExactMatch
  *
  * @brief API Function.
  *        Performs the exact match (address + prefix length.)

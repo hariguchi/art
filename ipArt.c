@@ -1,4 +1,7 @@
-/**
+/** @file ipArt.c
+    @brif Allotment Routing Table with simple trie
+
+
    ART: Allotment Routing Table
 
    Copyright (c) 2001-2015
