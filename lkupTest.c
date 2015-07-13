@@ -552,16 +552,16 @@ getSearchPerf (int alen, trieType type, char* sl, int nLevels)
     }
     nRoutes = mkRtTbl(pt);
     printf("Inserted %d routes to the routing table.\n", nRoutes);
-    printf("\nInspect the routing table: ");
+    printf("Inspect the routing table: ");
     if ( type == pathCompTrie ) {
         rtInspect(pt, &stats, inspectPcNode);
         rtPcInspect(pt);
     } else {
         rtInspect(pt, &stats, inspectNode);
     }
-    printf("\nExact and longest prefix matching test: ");
+    printf("Exact and longest prefix matching test: ");
     lookupTest(pt);
-    printf("done.\n\nRemove all the prefixes: ");
+    printf("done.\nRemove all the prefixes: ");
     rmRtTbl(pt);
 
     if ( stats.nRoutes != nRoutes ) {

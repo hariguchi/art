@@ -62,7 +62,8 @@ release:
 
 .PHONY: test
 test:
-	$(MAKE) clean release
+	$(MAKE) clean
+	$(MAKE) release
 	./tests.sh
 
 .PHONY: prof
