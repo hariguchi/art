@@ -4,10 +4,8 @@ PROF     := #-pg
 
 # Flags
 OPTFLAGS := -O0
-#OPTFLAGS := -g -O6 $(TBLDEF)
-#DEFS += -Dinline=''
 #DEFS += -DNDEBUG
-DEFS += -DDEBUG_FREE_HEAP -DSEARCH_TEST
+DEFS += -DDEBUG_FREE_HEAP
 #CFLAGS    := -Wall -DPROFILING $(PROF) $(OPTFLAGS)
 CFLAGS    := -Wall -g $(PROF) $(OPTFLAGS) $(DEFS)
 LDFLAGS   := 
@@ -58,7 +56,7 @@ $(LIBTARGET): $(LIBOBJS)
 
 .PHONY: release
 release:
-	$(MAKE) DEFS= OPTFLAGS=-O3
+	$(MAKE) DEFS=-DOPTIMIZATION_ON OPTFLAGS=-O3
 
 .PHONY: test
 test:
@@ -68,7 +66,7 @@ test:
 
 .PHONY: prof
 prof:
-	$(MAKE) DEFS= OPTFLAGS=-O3 PROF=-pg
+	$(MAKE) DEFS=-DOPTIMIZATION_ON OPTFLAGS=-O3 PROF=-pg
 
 .PHONY: clean
 clean:

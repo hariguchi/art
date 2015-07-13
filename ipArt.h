@@ -101,9 +101,6 @@ struct rtTable {
     bool (*delete)(rtTable* p, u8* pDest, int plen);
     routeEnt* (*findMatch)(rtTable *p, u8* pDest);
     routeEnt* (*findExactMatch)(rtTable *p, u8* pDest, int plen);
-#ifdef SEARCH_TEST
-    routeEnt* (*findMatchStat)(rtTable *p, u8* pDest); /* for testing */
-#endif /* SEARCH_TEST */
 
     int  nRoutes;           /* # of routes */
     int* nHeaps;            /* # of heaps at level `i' */
@@ -124,13 +121,6 @@ typedef void (*rtFunc)(routeEnt*, void*);
 #define isSubtable(p) ((p).count&1)
 #define makeSubtable(p) (subtable)((size_t)(p)|1)
 #define subtablePtr(p) ((tableEntry)((p).count&-2))
-
-
-
-/*
- * Internal functions
- */
-subtable  rtArtRootTable (rtTable* pt);
 
 
 /*

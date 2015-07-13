@@ -167,6 +167,7 @@ findSubtable (rtTable* pt, subtable t)
     return NULL;
 }
 
+#ifdef DEBUG_FREE_HEAP
 /**
  * @name  checkSubtable
  *
@@ -251,7 +252,6 @@ checkSubtable (rtTable* pt, subtable t, bool* flag)
     assert(nRoutes == t[0].nRoutes);
     assert(nSubtables == t[0].nSubtables);
 }
-#ifdef DEBUG_FREE_HEAP
 #define CHECKSUBTABLE(_pt,_t,_f) checkSubtable((_pt), (_t), (_f))
 #else
 #define CHECKSUBTABLE(_pt,_t,_f)

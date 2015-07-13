@@ -149,6 +149,27 @@ rtArtFreeSubtable (rtTable* pt, subtable t)
 
 
 /**
+ * @name  rtArtRootTable
+ *
+ * @brief Allocates a root subtable (trie node)
+ *
+ * @param[in] pt Pointer to the routing table
+ *
+ * @retval subtable Pointer to the allocated root subtable
+ * @retval NULL     Failed to allocate a new subtable
+ */
+static subtable
+rtArtRootTable (rtTable* pt)
+{
+    tableEntry base;
+
+
+    base.ent = NULL;
+    return rtArtNewSubTable (pt, 0, base);
+}
+
+
+/**
  * @name   rtArtInsert
  *
  * @brief  Inserts route `s' into subtable (trie node) `t'
@@ -829,29 +850,14 @@ rtArtInit (int nLevels, s8* psl, int alen, trieType type)
     pt->pTbl = calloc(nLevels, sizeof(subtable*));
     if ( pt->pTbl == NULL ) goto entFree;
 
-#if 0
-    pt->nHeaps = calloc(nLevels, sizeof(int));
-    if ( pt->nHeaps  == NULL ) goto slFree;
-
-    pt->nTransit = calloc(nLevels, sizeof(int));
-    if ( pt->nTransit == NULL ) goto 
-#endif/*0*/
-
     pt->insert         = rtArtInsertRoute;
     pt->delete         = rtArtDeleteRoute;
     pt->findMatch      = rtArtFindMatch;
     pt->findExactMatch = rtArtFindExactMatch;
-#ifdef SEARCH_TEST
-    pt->findMatchStat  = rtArtFindMatchStat;
-#endif /* SEARCH_TEST */
 
     return pt;
+    assert(1);                  /* should not happen */
 
-
-#if 0
-heapFree:
-    free(pt->nHeaps);
-#endif/*0*/
 
 entFree:
     free(pt->pEnt);
@@ -864,91 +870,3 @@ tblFree:
     return NULL;
 }
 
-
-void
-rtArtCollectStats (rtTable* pt, subtable ps)
-{
-    int i, level, haveSubtable;
-
-
-    assert(pt && ps);
-
-
-    level = ps[-1].level;
-    ++pt->nHeaps[level];
-    haveSubtable = 0;
-    for (i = 1 << pt->psi[level].sl; i < (1 << (pt->psi[level].sl+1)); ++i) {
-        if (isSubtable(ps[i])) {
-            rtArtCollectStats(pt, subtablePtr(ps[i]).down);
-            haveSubtable = 1;
-        }
-    }
-    if (haveSubtable) {
-        if (ps[0].count == 1 && ps[1].ent == NULL) ++pt->nTransit[level];
-    }
-}
-
-
-
-extern int NxitHeap[];
-
-routeEnt *
-rtArtFindMatchStat(rtTable* p, u8* pDest)
-{
-    register tableEntry  ent;
-    register tableEntry* pst;
-    register int         l;
-    u32 offset;
-    int nxit;
-
-
-    pst = p->root;
-    l = 0;
-    offset = 0;
-    nxit = 0;
-    for (;;) {
-        ent = pst[fringeIndex(&pDest, &offset, p->psi[l].sl)];
-        if ( !ent.ent ) break;
-        if ( !isSubtable(ent) ) {
-            ++NxitHeap[nxit];
-            nxit = 0;
-            return ent.ent;
-        }
-
-        /*
-         * Transit heap
-         */
-        assert(pst[0].count > 0);
-        if ( pst[0].count == 1 ) {
-            ++nxit;
-        } else {
-            ++NxitHeap[nxit];
-            nxit = 0;
-        }
-            
-        ent = subtablePtr(ent);
-        if ( l >= (p->nLevels - 1) ) break;
-        p->pEnt[l++] = ent.down;
-        pst = ent.down;
-    }
-
-    /*
-     * No match 
-     */
-    while ( --l >= 0 ) {
-        pst = p->pEnt[l];
-        if ( pst[1].ent ) return pst[1].ent;
-    }
-    return p->root[1].ent;
-}
-
-
-subtable
-rtArtRootTable (rtTable* pt)
-{
-    tableEntry base;
-
-
-    base.ent = NULL;
-    return rtArtNewSubTable (pt, 0, base);
-}

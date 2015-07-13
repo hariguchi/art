@@ -37,7 +37,9 @@
 
  */
 
+#ifndef OPTIMIZATION_ON
 #pragma GCC diagnostic ignored "-Wunused-function"
+#endif /* OPTIMIZATION_ON */
 
 
 /*
