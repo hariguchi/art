@@ -1,6 +1,7 @@
 *.d
 *.o
 *~
+a.out
 gmon.out
 make.log
 libipart.a
