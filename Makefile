@@ -79,10 +79,13 @@ include $(addprefix $(DEPDIR),$(SRCS:.c=.d))
 $(DEPDIR)%.d : %.c
 	$(SHELL) -ec '$(CC) -M $(CPPFLAGS) $< | sed "s@$*.o@& $@@g " > $@'
 
-$(OBJDIR)%.o: %.c
+$(OBJDIR)%.o: %.c $(DEPDIR)%.d
 	$(COMPILE.c) $(OUTPUT_OPTION) $<
 
-$(OBJDIR)%.o: %.cc
+$(OBJDIR)%.o: %.cc $(DEPDIR)%.d
+	$(COMPILE.cc) $(OUTPUT_OPTION) $<
+
+$(OBJDIR)%.o: %.cpp $(DEPDIR)%.d
 	$(COMPILE.cc) $(OUTPUT_OPTION) $<
 
 %.i : %.c
