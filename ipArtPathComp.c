@@ -378,8 +378,13 @@ firstDiffLevel (rtTable* p, int index, u8* p1, u8* p2)
         if ( p->psi[l].tl > nBits ) {
             offset = p->psi[l].tl - nBits;
 
-            assert(offset <= 8);
-
+            while ( offset > 8 ) {
+                if ( p1[index] != p2[index] ) {
+                    return l;
+                }
+                offset >>= 1;
+                ++index;
+            }
             mask = ~((1 << (8 - offset)) - 1);
             if ( (p1[index] & mask) == (p2[index] & mask) ) {
                 return l + 1;
