@@ -645,7 +645,7 @@ insertNewSubtable (rtTable* p, routeEnt* pEnt,
 
     l     = pEnt->level;
     e.ent = NULL;
-    ent = *pst2;
+    ent   = *pst2;
     if ( isSubtable(ent) ) {
         assert(level > pst[-1].level);
 
@@ -768,16 +768,17 @@ rtArtPcInsertRoute (rtTable* pt, routeEnt* pEnt)
         pDest = pEnt->dest;     /* ptr to dest. IP address */
         setStartBitPos(pt, &pDest, &offset, l);
         pst += fringeIndex(&pDest, &offset, sl);
-        ent = *pst;
+        ent  = *pst;
         if ( (pEnt->level > 0) && isSubtable(ent) ) {
-            ent = subtablePtr(ent);
-            l = (ent.down)[-1].level; /* level of subtable */
+            ent  = subtablePtr(ent);
+            l    = (ent.down)[-1].level; /* level of subtable */
             pDef = getNodeDefAddr(pt, ent.down);
 
             assert(l > 0);
 
             /*
-             * Comparison finishes at the `i'-th byte from 'pDef'
+             * bitStrCmp(): comparison finishes
+             * at the `i'-th byte from 'pDef'
              */
             if ( l < pEnt->level ) {
                 endBit = pt->psi[l - 1].tl - 1;
@@ -821,6 +822,9 @@ rtArtPcInsertRoute (rtTable* pt, routeEnt* pEnt)
             }
             continue;
         } else {
+            /*
+             * `ent' is either a route pointer or NULL
+             */
             nl = pEnt->level;
         }
         if ( nl == l ) {
