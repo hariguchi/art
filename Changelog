@@ -10,3 +10,6 @@
                  necessary to do bit string comparison in the
                  case of path compressed trie (no need to do so
                  in the case of simple trie.)
+2015-07-10  1.6  Modified IPv6 test to support up to /128 routes.
+2015-07-17  1.7  Added support for >8 bit stride length subtables to
+                 path-compressed trie
