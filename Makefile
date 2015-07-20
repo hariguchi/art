@@ -4,11 +4,9 @@ PROF     := #-pg
 
 # Flags
 OPTFLAGS := -O0
-#DEFS += -DNDEBUG
-DEFS += -DDEBUG_FREE_HEAP
-#CFLAGS    := -Wall -DPROFILING $(PROF) $(OPTFLAGS)
-CFLAGS    := -Wall -g $(PROF) $(OPTFLAGS) $(DEFS)
-LDFLAGS   := 
+DEFS     += -DDEBUG_FREE_HEAP
+CFLAGS   := -Wall -g $(PROF) $(OPTFLAGS) $(DEFS)
+LDFLAGS  := 
 
 # Libraries
 LDLIBS    := 
@@ -37,15 +35,6 @@ LIBOBJS := $(addprefix $(OBJDIR),$(LIBSRCS:.c=.o))
 OBJS    := $(addprefix $(OBJDIR),$(SRCS:.c=.o))
 
 
-# Package files
-PKGSRCS  := README Changelog Makefile Types.h util.c \
-			ipArt.h ipArt.c ipArtPathComp.c lkupTest.c
-PKGDATA  := ipa.txt rtTbl-random1.txt rtTbl-random2.txt rtTbl-random3.txt \
-			v6ipa.txt v6routes-random1.txt v6routes-random2.txt
-PKGSRCS  := $(foreach f,$(PKGSRCS),art/$(f))
-PKGDATA  := $(foreach f,$(PKGDATA),art/$(f))
-PKGFILES := $(PKGSRCS) $(PKGDATA)
-
 
 $(TARGET): $(OBJS) $(LIBTARGET)
 	$(LINK.o) $^ $(LOADLIBES) $(LDLIBS) $(PROF) -o $@
@@ -56,7 +45,7 @@ $(LIBTARGET): $(LIBOBJS)
 
 .PHONY: release
 release:
-	$(MAKE) DEFS=-DOPTIMIZATION_ON OPTFLAGS=-O3
+	$(MAKE) DEFS='-DOPTIMIZATION_ON -DNDEBUG' OPTFLAGS=-O3
 
 .PHONY: test
 test:
