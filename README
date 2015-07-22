@@ -8,7 +8,7 @@
 
 1. Contents
 
-This package includes three ART implementations as follows:
+This package includes two ART implementations:
 
   o ipArt: supports arbitrary address length and arbitrary
     stride length distribution. `ipArt' uses simple multibit
@@ -17,8 +17,9 @@ This package includes three ART implementations as follows:
     stride length distribution. `ipArt-PC' uses path-compressed
     trie.
 
-`ipArt' and `ipArt-PC' are in the same binary. You can choose
-which one is used when instantiating a routing table.
+`ipArt' and `ipArt-PC' are stored in the same library (libipart.a.)
+You can choose which one is used when instantiating a routing
+table.
 
 
 
@@ -40,13 +41,13 @@ which one is used when instantiating a routing table.
   util.c                utility functions (obsolete)
   data/
    v4routes-random1.txt 569,770 IPv4 prefixes in random order
-                        for the route insertion test 
+                        for the route insertion test
    v4routes-random2.txt 569,770 IPv4 prefixes in random order
-                        for the route search test 
+                        for the route search test
    v4routes-random3.txt 569,770 IPv4 prefixes in the random
                         order for the route deletion test
    v6routes-random1.txt 24,470 IPv6 prefixes in random order
-                        for the route insertion test 
+                        for the route insertion and search test
    v6routes-random2.txt 24,470 IPv6 prefixes in random order
                         for the route deletion and search test
 
@@ -57,7 +58,8 @@ telnet://route-views.routeviews.org.
 
 3. Installation
 
-Type `make' to make a test command rtLoookup.
+Type `make' and a test command `rtLoookup' and library
+`libipart.a' are build.
 
 
 4. Interactive Simulation
@@ -84,7 +86,10 @@ follows:
   typedef struct routeEnt {
       u8  dest[16];               /* upto IPv6 */
       int plen;                   /* prefix length */
-    int level;                  /* for performance */
+      int level;                  /* for performance */
+      /*
+       * Your stuff
+       */
   } routeEnt, *pRouteEnt;
 
 `dest' must represent the destination address of the route.
