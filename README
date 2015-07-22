@@ -31,8 +31,8 @@ table.
                         and deletion tests as follows:
                           1. Simple trie with 569,770 IPv4 prefixes
                           2. Path-compressed trie with 569,770 IPv4 prefixes
-                          3. Simple trie with 24,470 IPv4 prefixes
-                          4. Path-compressed trie with 24,470 IPv4 prefixes
+                          3. Simple trie with 24,470 IPv6 prefixes
+                          4. Path-compressed trie with 24,470 IPv6 prefixes
   Types.h               Local type definitions
   ipArt.c               An `ipArt' ART implementation (simple trie)
   ipArtPathComp.c       An `ipArt-PC' ART implementation
