@@ -529,14 +529,6 @@ rmRtTbl (rtTable* pt)
 }
 
 
-#ifdef SEARCH_TEST
-#define V4FILE "data/v4routes-random2.txt"
-#define V6FILE "data/v6routes-random2.txt"
-#else /* SEARCH_TEST */
-#define V4FILE "ipa.txt"
-#define V6FILE "v6ipa.txt"
-#endif /* SEARCH_TEST */
-
 boolean
 getSearchPerf (int alen, trieType type, char* sl, int nLevels)
 {
@@ -996,7 +988,7 @@ lookupTest (rtTable* pt)
 
     if ( pt->alen == 32 ) {
         af  = AF_INET;
-        strcpy(buf, "data/v4routes-random1.txt");
+        strcpy(buf, "data/v4routes-random2.txt");
         
     } else {
         af  = AF_INET6;
