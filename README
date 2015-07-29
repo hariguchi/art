@@ -59,7 +59,7 @@ telnet://route-views.routeviews.org.
 3. Installation
 
 Type `make' and a test command `rtLoookup' and library
-`libipart.a' are build.
+`libipart.a' are built.
 
 
 4. Interactive Simulation
