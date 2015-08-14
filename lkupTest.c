@@ -678,9 +678,10 @@ printRoutes (rtTable *p)
     r.pStart = r.pEnd = NULL;
     r.len = p->alen;
 #if 0
-    rtArtWalkTrie(p, p->root, prRoute, &r);
-#endif
+    rtArtDFwalk(p, p->root, prRoute, &r);
+#else
     rtArtWalkTable(p, p->root, 1, 1 << p->psi[0].sl, prRoute, &r);
+#endif
 }
 
 void

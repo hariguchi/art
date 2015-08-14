@@ -682,11 +682,59 @@ rtArtWalkTable (rtTable* pt, subtable p, int i,
 
 
 /**
- * @name  rtArtWalkTrie
+ * @name   rtArtWalkBaseIndices
+ *
+ * @brief  Visit all base indices in a subtable (trie node)
+ *         and call the callback function if each index has a route.
+ *
+ * @param[in] pt Pointer to the routing table
+ * @param[in] p  Pointer to the subtable start walk-through.
+ * @param[in] f  Callback function pointer
+ * @param[in] p2 Parameter to function (*f)()
+ */
+static inline void
+rtArtWalkBaseIndices (rtTable* pt, subtable p, rtFunc f, void* p2)
+{
+    int i, j, l, max, plen;
+
+    l   = p[-1].level;
+    max = 1 << pt->psi[l].sl;
+
+    assert(l < pt->nLevels);
+
+    /*
+     * iterate non-fringe nodes.
+     * there should not be any subtable pointers.
+     * p[1].ent will be taken care of when
+     * fringe nodes are visited.
+     */
+    plen = (l == 0) ? 0 : (pt->psi[l-1].tl + 1);
+    j = 4;
+    for ( i = 2; i < max; ++i ) {
+        assert(!isSubtable(p[i]));
+
+        if ( i == j ) {
+            /*
+             * reached the beginning of the next prefix lengh.
+             */
+            j <<= 1;
+            ++plen;
+        } else {
+            assert(i < j);
+        }
+        if ( p[i].ent && (p[i].ent->plen == plen) ) {
+            (*f)(p[i].ent, p2);
+        }
+    }
+}
+
+
+/**
+ * @name  rtArtBFwalk
  *
  * @brief API function.
- *        Walks through the routing table. Different from rtArtWalkTable(),
- *        this function is not recursive.
+ *        Walks through the routing table in the breadth first fashion.
+ *        Different from rtArtWalkTable(), this function is not recursive.
  *
  * @param[in] pt Pointer to the routing table
  * @param[in] p  Pointer to the beginning of
@@ -695,11 +743,11 @@ rtArtWalkTable (rtTable* pt, subtable p, int i,
  * @param[in] p2 Pointer parameter to (*f)().
  */
 void
-rtArtWalkTrie (rtTable* pt, subtable p, rtFunc f, void* p2)
+rtArtBFwalk (rtTable* pt, subtable p, rtFunc f, void* p2)
 {
     dllHead q;
     rtArtWalkQnode* pn;
-    int i, j, l, max, plen;
+    int i, l, max, plen;
 
 
     /*
@@ -721,41 +769,16 @@ rtArtWalkTrie (rtTable* pt, subtable p, rtFunc f, void* p2)
         p = pn->p;
         free(pn);
 
-        l   = p[-1].level;
-        max = 1 << pt->psi[l].sl;
+        rtArtWalkBaseIndices(pt, p, f, p2);
 
-        assert(l < pt->nLevels);
-
-        /*
-         * iterate non-fringe nodes.
-         * there should not be any subtable pointers.
-         * p[1].ent will be taken care of when
-         * fringe nodes are visited.
-         */
-        plen = (l == 0) ? 0 : (pt->psi[l-1].tl + 1);
-        j = 4;
-        for ( i = 2; i < max; ++i ) {
-            assert(!isSubtable(p[i]));
-
-            if ( i == j ) {
-                /*
-                 * reached the beginning of the next prefix lengh.
-                 */
-                j <<= 1;
-                ++plen;
-            } else {
-                assert(i < j);
-            }
-            if ( p[i].ent && (p[i].ent->plen == plen) ) {
-                (*f)(p[i].ent, p2);
-            }
-        }
         /*
          * iterate fringe nodes.
          * enqueue p[i] if it is a subtable pointer.
          */
+        l    = p[-1].level;
+        i    = 1 << pt->psi[l].sl;
+        max  = i << 1;
         plen = pt->psi[l].tl;
-        max <<= 1;
         for ( ; i < max; ++i ) {
             if ( isSubtable(p[i]) ) {
                 subtable  pst  = subtablePtr(p[i]).down;
@@ -779,6 +802,108 @@ rtArtWalkTrie (rtTable* pt, subtable p, rtFunc f, void* p2)
                 }
             }
         }
+    }
+}
+
+
+/**
+ * @name  rtArtDFwalk
+ *
+ * @brief API function.
+ *        Walks through the routing table in the depth first fashion.
+ *        Different from rtArtWalkTable(), this function is not recursive.
+ *
+ * @param[in] pt Pointer to the routing table
+ * @param[in] p  Pointer to the beginning of
+ *               subtable (trie node) to start trie walk
+ * @param[in] f  Function pointer to be called with a visited route
+ * @param[in] p2 Pointer parameter to (*f)().
+ */
+void
+rtArtDFwalk (rtTable* pt, subtable p, rtFunc f, void* p2)
+{
+    typedef struct stackNode stackNode;
+    struct stackNode {
+        dllNode  dlln;          /* doubly linked list node */
+
+        subtable p;
+        int idx;                /* fringe index to start */
+        int max;
+    };
+
+    dllHead s;
+    stackNode* pn;
+    int i, l, max, plen;
+
+    /*
+     * initialization
+     */
+    dllInit(&s);
+    pn = calloc(1, sizeof(*pn));
+    if ( !pn ) {
+        return;
+    }
+
+    /*
+     *  perform depth-first iteration from `p'.
+     *  pointer `p' must point to the beginning of trie node.
+     */
+    pn->p   = p;
+    pn->idx = 1 << pt->psi[0].sl;
+    pn->max = pn->idx << 1;
+    dllPushNode(&s, (dllNode*)pn);
+    while ( (pn = (stackNode*)dllPopNode(&s)) ) {
+        p   = pn->p;
+        i   = pn->idx;
+        max = pn->max;
+        free(pn);
+
+        l    = p[-1].level;
+        plen = pt->psi[l].tl;
+        if ( i == 1 << pt->psi[l].sl ) {
+            rtArtWalkBaseIndices(pt, p, f, p2);
+        }
+
+        /*
+         * iterate fringe nodes.
+         * enqueue p[i] if it is a subtable pointer.
+         */
+        for ( ; i < max; ++i ) {
+            if ( isSubtable(p[i]) ) {
+                subtable  pst  = subtablePtr(p[i]).down;
+                routeEnt* pEnt = pst[1].ent;
+                if ( pEnt && (pEnt->plen == plen) ) {
+                    /*
+                     * print the route pushed out
+                     * to the next level
+                     */
+                    (*f)(pst[1].ent, p2);
+                }
+                pn = calloc(1, sizeof(*pn));
+                if ( !pn ) {
+                    continue;
+                }
+                pn->p   = p;
+                pn->idx = i + 1;
+                pn->max = max;
+                dllPushNode(&s, (dllNode*)pn);
+                pn = calloc(1, sizeof(*pn));
+                if ( !pn ) {
+                    continue;
+                }
+                pn->p   = subtablePtr(p[i]).down;
+                pn->idx = 1 << pt->psi[l].sl;
+                pn->max = pn->idx << 1;
+                dllPushNode(&s, (dllNode*)pn);
+                goto end_for;
+            } else if ( p[i].ent ) {
+                if ( p[i].ent->plen == plen ) {
+                    (*f)(p[i].ent, p2);
+                }
+            }
+        }
+    end_for:
+        ;
     }
 }
 

@@ -140,7 +140,8 @@ bool      rtArtDeleteRoute(rtTable *pt, u8* pDest, int plen);
 bool      rtArtPcDeleteRoute(rtTable *pt, u8* pDest, int plen);
 void      rtArtWalkTable(rtTable* pt, subtable p, int index,
                          int thresh, rtFunc f, void* p2);
-void      rtArtWalkTrie (rtTable* pt, subtable p, rtFunc f, void* p2);
+void      rtArtBFwalk (rtTable* pt, subtable p, rtFunc f, void* p2);
+void      rtArtDFwalk (rtTable* pt, subtable p, rtFunc f, void* p2);
 void      rtArtCollectStats(rtTable* pt, subtable ps);
 
 
