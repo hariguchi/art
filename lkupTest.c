@@ -355,11 +355,16 @@ lookUpRoute (int af)
     char      sIpa[32];
     u8        ipa[16];
     pRouteEnt pRtEnt;
+    char*     s;
 
 
     printf("destination: ");
     if (!fgets(sIpa, 32, stdin)) {
         return;
+    }
+    s = index(sIpa, '\n');
+    if ( s ) {
+        *s = '\0';
     }
     if ( inet_pton(af, sIpa, ipa) != 1 ) {
         fprintf(stderr, "Error: inet_pton(): %s\n", sIpa);
