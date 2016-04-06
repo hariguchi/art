@@ -53,7 +53,7 @@
          8     9     10    11    12    13    14    15
        (0/3) (1/3) (2/3) (3/3) (4/3) (5/3) (6/3) (7/3)
 
-   Let us call a node in the deepest level of hearp (node 8 to 15)
+   Let us call a node in the deepest level of heap (node 8 to 15)
    `fringe node'. Let us call the index of the node corresponding
    to a prefix `base index'. Let `s' be a pointer of a route entry
    to be inserted. Let `X' be a heap. The basic insertion algorithm
