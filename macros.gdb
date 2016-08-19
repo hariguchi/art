@@ -24,7 +24,8 @@ define dumpNodePc
 end
 
 #
-# usage dumpStack
+# usage: struct stackNode s;
+#        dumpStack s
 #
 define dumpStack
   if ($argc > 0)
