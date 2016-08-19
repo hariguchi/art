@@ -22,3 +22,16 @@ define dumpNodePc
     x/32gx $arg0
   end
 end
+
+#
+# usage dumpStack
+#
+define dumpStack
+  if ($argc > 0)
+    set $n = ((dllHead)$arg0).head
+    while $n != 0
+      p *((stackNode *)$n)
+      set $n = ((stackNode *)$n)->dlln.next
+    end
+  end
+end
