@@ -81,6 +81,10 @@ struct pcSubtbls {
     int      idx;
 };
 
+enum {
+    RT_FLAG_FLUSH = 0x1,
+};        
+
 typedef struct rtTable rtTable;
 struct rtTable {
     tableEntry*  root;    /* pointer to root subtable */
@@ -95,9 +99,12 @@ struct rtTable {
     u16          len;     /* address length in bytes */
     s16          off;     /* -1 - byte2nPtrs(len) */
     u16          nLevels; /* number of levels */
+    u32          flags;
 
     routeEnt* (*insert)(rtTable* p, routeEnt* r);
     bool (*delete)(rtTable* p, u8* pDest, int plen);
+    void (*flush)(rtTable* pt);
+    void (*deleteTable)(rtTable* pt);
     routeEnt* (*findMatch)(rtTable *p, u8* pDest);
     routeEnt* (*findExactMatch)(rtTable *p, u8* pDest, int plen);
 
