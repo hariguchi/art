@@ -827,13 +827,18 @@ rtArtDFwalk (rtTable* pt, subtable p, rtFunc f, void* p2)
         dllNode  dlln;          /* doubly linked list node */
 
         subtable p;
-        int idx;                /* fringe index to start */
-        int max;
+        int dir;                /* direction (down or up) */
+        int idx;
+        int threshold;          /* start index of fringe nodes */
+    };
+    enum {
+        down = 0,
+        up = 1,
     };
 
     dllHead s;
     stackNode* pn;
-    int i, l, max, plen;
+    int dir, i, l, threshold, plen;
 
     /*
      * initialization
@@ -849,60 +854,99 @@ rtArtDFwalk (rtTable* pt, subtable p, rtFunc f, void* p2)
      *  pointer `p' must point to the beginning of trie node.
      */
     pn->p   = p;
-    pn->idx = 1 << pt->psi[0].sl;
-    pn->max = pn->idx << 1;
+    pn->dir = down;
+    pn->idx = 1;
     dllPushNode(&s, (dllNode*)pn);
     while ( (pn = (stackNode*)dllPopNode(&s)) ) {
         p   = pn->p;
+        dir = pn->dir;
         i   = pn->idx;
-        max = pn->max;
         free(pn);
 
-        l    = p[-1].level;
-        plen = pt->psi[l].tl;
-        if ( i == 1 << pt->psi[l].sl ) {
-            rtArtWalkBaseIndices(pt, p, f, p2);
+        l = p[-1].level;
+        threshold = 1 << pt->psi[l].sl;
+        assert(i < (threshold << 1));
+
+        plen = pt->psi[l].tl - pt->psi[l].sl;
+        if (i > 1) {
+            int j;
+            for (j = pt->psi[l].sl; i < (1 << j); --j) ;
+            plen += j;
         }
 
-        /*
-         * iterate fringe nodes.
-         * enqueue p[i] if it is a subtable pointer.
-         */
-        for ( ; i < max; ++i ) {
-            if ( isSubtable(p[i]) ) {
-                subtable  pst  = subtablePtr(p[i]).down;
-                routeEnt* pEnt = pst[1].ent;
-                if ( pEnt && (pEnt->plen == plen) ) {
-                    /*
-                     * print the route pushed out
-                     * to the next level
-                     */
-                    (*f)(pst[1].ent, p2);
-                }
-                pn = calloc(1, sizeof(*pn));
-                if ( !pn ) {
-                    continue;
-                }
-                pn->p   = p;
-                pn->idx = i + 1;
-                pn->max = max;
-                dllPushNode(&s, (dllNode*)pn);
-                pn = calloc(1, sizeof(*pn));
-                if ( !pn ) {
-                    continue;
-                }
-                pn->p   = subtablePtr(p[i]).down;
-                pn->idx = 1 << pt->psi[l].sl;
-                pn->max = pn->idx << 1;
-                dllPushNode(&s, (dllNode*)pn);
-                goto end_for;
-            } else if ( p[i].ent ) {
-                if ( p[i].ent->plen == plen ) {
-                    (*f)(p[i].ent, p2);
+        do {
+            if ( dir == down ) {
+                /*
+                 * do stuff here
+                 */
+                if ( isSubtable(p[i]) ) {
+                    assert(i >= threshold);
+
+                    subtable  pst  = subtablePtr(p[i]).down;
+                    routeEnt* pEnt = pst[1].ent;
+                    if ( pEnt && (pEnt->plen == plen) ) {
+                        /*
+                         * print the route pushed out
+                         * to the next level
+                         */
+                        (*f)(pst[1].ent, p2);
+                    }
+                    pn = calloc(1, sizeof(*pn));
+                    if ( !pn ) {
+                        goto moveOn;
+                    }
+                    pn->p   = p;
+                    if ( i & 1 ) {
+                        pn->idx = i >> 1;
+                        pn->dir = up;
+                    } else {
+                        pn->idx = i + 1;
+                        pn->dir = down;
+                    }
+                    pn->threshold = threshold;
+                    dllPushNode(&s, (dllNode*)pn);
+                    pn = calloc(1, sizeof(*pn));
+                    if ( !pn ) {
+                        pn = (stackNode*)dllPopNode(&s);
+                        free(pn);
+                        goto moveOn;
+                    }
+                    pn->p   = pst; /* subtablePtr(p[i]).down; */
+                    pn->idx = 1;
+                    pn->threshold = 0;
+                    dllPushNode(&s, (dllNode*)pn);
+                    goto endWhile;
+                } else if ( p[i].ent && (i > 1) ) {
+                    if ( p[i].ent->plen >= plen ) {
+                        (*f)(p[i].ent, p2);
+                    }
                 }
             }
-        }
-    end_for:
+moveOn:
+            if ( i < threshold ) {
+                if ( dir == up ) {
+                    if ( i & 1 ) {
+                        i >>= 1;
+                        --plen;
+                    } else {
+                        ++i;
+                        dir = down;
+                    }
+                } else {
+                    i <<= 1;
+                    ++plen;
+                }
+            } else {
+                if ( i & 1 ) {
+                    i >>= 1;
+                    --plen;
+                    dir = up;
+                } else {
+                    ++i;
+                }
+            }
+        } while (i != 1);       /* start is always 1 */
+endWhile:
         ;
     }
 }
@@ -995,3 +1039,54 @@ tblFree:
     return NULL;
 }
 
+#if 0
+/**
+ * @name   heapVisit
+ *
+ * @brief  Visits all elements in a heap in the depth first fashion.
+ *         This function is *NOT* recursive.
+ *
+ * @param[in] start     Start index
+ * @param[in] threshold The first index of the bottom of the hearp
+ */
+void
+heapDFvisit (int start, int threshold)
+{
+    enum {
+        down = 0,
+        up   = 1,
+    };
+    int i = start;
+    int dir = down;
+
+    do {
+        /*
+         * do something with `i'
+         */
+        if (dir == down) {
+            printf("%d\n", i);
+        }
+
+        if (i < threshold) {
+            if (dir == up) {
+                if (i & 1) {
+                    i >>= 1;
+                } else {
+                    ++i;
+                    dir = down;
+                }
+            } else {
+                i <<= 1;
+            }
+        } else {
+            if (i & 1) {
+                i >>= 1;
+                dir = up;
+            } else {
+                ++i;
+            }
+        }
+    } while (i != start);
+}
+
+#endif//0
