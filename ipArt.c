@@ -4,7 +4,7 @@
 
    ART: Allotment Routing Table
 
-   Copyright (c) 2001-2015
+   Copyright (c) 2001-2016
    Yoichi Hariguchi. All rights reserved.
 
    The algorithm of ART is invented by Donald Knuth in 2000 while he was
@@ -223,7 +223,7 @@ rtArtInsert (rtTable* pt, subtable t, int k,
  * @param[in] pt          Pointer to the routing table
  * @param[in] t           Pointer to a subtable (trie node)
  * @param[in] k           Index to start process.
- *                        `k' must be smaller than `threshold'
+ *                        `k' must be smaller than `threshold << 1'
  * @param[in] threshold   The first fringe index of 't'
  * @param[in] fringeCheck False if `t' is the deepest level. Otherwise true.
  * @param[in] pDest       Pointer to the destination IP address to be deleted.
@@ -297,6 +297,7 @@ rtArtDelete (rtTable* pt, subtable t, int k,
  * @name   rtArtFindMatch
  *
  * @brief  API function.
+ *         (registered as `pt->findMatch()' in `rtArtInit()').
  *         Performs the longest prefix match.
  *
  * @param[in] pt          Pointer to the routing table
@@ -305,7 +306,7 @@ rtArtDelete (rtTable* pt, subtable t, int k,
  * @retval routeEnt* Pointer to the longest prefix matching route.
  * @retval NULL      There was no matching route for `pDest'
  */
-routeEnt *
+static routeEnt *
 rtArtFindMatch (rtTable* pt, u8* pDest)
 {
     register tableEntry  ent;
@@ -344,6 +345,7 @@ rtArtFindMatch (rtTable* pt, u8* pDest)
  * @name  rtArtFindExactMatch
  *
  * @brief API Function.
+ *        (registered as `pt->findExactMatch()' in `rtArtInit()').
  *        Performs the exact match (address + prefix length.)
  *
  * @param[in] pt    Pointer to the routing table
@@ -353,7 +355,7 @@ rtArtFindMatch (rtTable* pt, u8* pDest)
  * @retval routeEnt* Pointer to the found route entry (success)
  * @retval NULL      Failed to find a matching route entry
  */
-routeEnt *
+static routeEnt *
 rtArtFindExactMatch (rtTable* pt, u8* pDest, int plen)
 {
     register tableEntry  ent;
@@ -421,7 +423,7 @@ AddrComp:
  * @name   rtArtNewRoute
  *
  * @brief  API function.
- *         Allocates a new route.
+ *         Allocates memory for a new route entry.
  *
  * @param[in] pt Pointer to the routing table
  *
@@ -443,8 +445,7 @@ rtArtNewRoute (rtTable* pt)
 /**
  * @name   rtArtFreeRoute
  *
- * @brief  API function.
- *         Frees a route
+ * @brief  Frees memory allocated for a route.
  *
  * @param[in] pt Pointer to the routing table
  * @param[in] r  Pointer to the route to be freed
@@ -465,6 +466,7 @@ rtArtFreeRoute (rtTable* pt, routeEnt* r)
  * @name   rtArtInsertRoute
  *
  * @brief  API function.
+ *         (registered as `pt->insert()').
  *         Adds a route represented by `pEnt' to the routing table `pt'
  *
  * @param[in] pt   Pointer to the routing table
@@ -477,7 +479,7 @@ rtArtFreeRoute (rtTable* pt, routeEnt* r)
  *                   `pEnt' must be freed in this case.
  *                   
  */
-routeEnt*
+static routeEnt*
 rtArtInsertRoute (rtTable* pt, routeEnt* pEnt)
 {
     register int l, len;
@@ -548,6 +550,7 @@ rtArtInsertRoute (rtTable* pt, routeEnt* pEnt)
  * @name   rtArtDeleteRoute
  *
  * @brief  API function.
+ *         (registered as `pt->delete()').
  *         Deletes a route represented by an IP prefix (
  *         (address and its prefix length) from the routing table.
  *         The matched route entry is freed in this function.
@@ -560,7 +563,7 @@ rtArtInsertRoute (rtTable* pt, routeEnt* pEnt)
  *               The route entry is freed in this function.
  * @retval false If there is no matching route in `pt'.
  */
-bool
+static bool
 rtArtDeleteRoute (rtTable* pt, u8* pDest, int plen)
 {
     register int         l, len;
@@ -587,8 +590,8 @@ rtArtDeleteRoute (rtTable* pt, u8* pDest, int plen)
 
 
     index  = baseIndex(pt, pDest, plen);
-    len    = pt->psi[0].sl;      /* accumulated address bit length */
-    pst    = pt->root;           /* ptr to subtable */
+    len    = pt->psi[0].sl;     /* accumulated address bit length */
+    pst    = pt->root;          /* ptr to subtable */
     l      = 0;                 /* level */
     flag   = true;
     offset = 0;
@@ -815,8 +818,10 @@ rtArtBFwalk (rtTable* pt, subtable p, rtFunc f, void* p2)
  *
  * @param[in] pt Pointer to the routing table
  * @param[in] p  Pointer to the beginning of
- *               subtable (trie node) to start trie walk
- * @param[in] f  Function pointer to be called with a visited route
+ *               subtable (trie node) to start trie walk.
+ *               Set `p' to `pt->root' to walk through the entire table.
+ * @param[in] f  Function pointer to be called with a visited route.
+ *               rtArtDFwalk() clear the entire routes if `f' is NULL.
  * @param[in] p2 Pointer parameter to (*f)().
  */
 void
@@ -828,7 +833,7 @@ rtArtDFwalk (rtTable* pt, subtable p, rtFunc f, void* p2)
 
         subtable p;
         int dir;                /* direction (down or up) */
-        int idx;
+        int idx;                /* starting index */
         int threshold;          /* start index of fringe nodes */
     };
     enum {
@@ -850,8 +855,9 @@ rtArtDFwalk (rtTable* pt, subtable p, rtFunc f, void* p2)
     }
 
     /*
-     *  perform depth-first iteration from `p'.
-     *  pointer `p' must point to the beginning of trie node.
+     * perform depth-first iteration from `p'.
+     * Set `p' to `pt->root' to walk through the
+     * entire trie.
      */
     pn->p   = p;
     pn->dir = down;
@@ -873,7 +879,10 @@ rtArtDFwalk (rtTable* pt, subtable p, rtFunc f, void* p2)
             for (j = pt->psi[l].sl; i < (1 << j); --j) ;
             plen += j;
         }
-
+        /*
+         * perform depth-first iteration inside
+         * trie node `p'
+         */
         do {
             if ( dir == down ) {
                 /*
@@ -886,7 +895,7 @@ rtArtDFwalk (rtTable* pt, subtable p, rtFunc f, void* p2)
                     routeEnt* pEnt = pst[1].ent;
                     if ( pEnt && (pEnt->plen == plen) ) {
                         /*
-                         * print the route pushed out
+                         * treat the route pushed out
                          * to the next level
                          */
                         (*f)(pst[1].ent, p2);
@@ -923,6 +932,9 @@ rtArtDFwalk (rtTable* pt, subtable p, rtFunc f, void* p2)
                 }
             }
 moveOn:
+            /*
+             * advance index `i'
+             */
             if ( i < threshold ) {
                 if ( dir == up ) {
                     if ( i & 1 ) {
@@ -949,6 +961,111 @@ moveOn:
 endWhile:
         ;
     }
+}
+
+
+/**
+ * @struct prefixTbl
+ *
+ * @brief Structure used by `collectRoutes()'.
+ *        `p' must be a pointer equivalent to
+ *        `routeEnt entry[number_of_routes]'.
+ *
+ * @var   i
+ * @brief The number of routes collected up to now.
+ * @var   p
+ * @brief Must be initialized like
+ *        `calloc(number_of_routes, sizeof(routeEnt))
+ */
+typedef struct prefixTbl {
+    int i;
+    routeEnt* p;
+} prefixTbl;
+
+
+/**
+ * @name  collectRoutes
+ *
+ * @brief Callback function for `rtArtFlushRoutes()'.
+ *        Delete all the route entries in the routing table.
+ *
+ * @param[in] pt Pointer to the routing table
+ */
+static void
+collectRoutes (routeEnt* p, void* p2)
+{
+    prefixTbl* pt = (prefixTbl*)p2;
+    routeEnt* pEnt = pt->p + pt->i; /* &(pt->p[pt->i]) */
+
+    ++pt->i;
+    memcpy(pEnt->dest, p->dest, sizeof(pEnt->dest));
+    pEnt->plen  = p->plen;
+    pEnt->level = p->level;
+}
+
+/**
+ * @name  rtArtFlushRoutes
+ *
+ * @brief API Function.
+ *        (registered as `pt->flush()').
+ *        Delete all the route entries in the routing table.
+ * @param[in] pt Pointer to the routing table
+ *
+ * @retval ture  All route entries are successfully deleted.
+ * @retval false Otherwise.
+ */
+bool
+rtArtFlushRoutes (rtTable* pt)
+{
+    prefixTbl t;                /* all prefixes are stored in `t' */
+    bool rc = true;
+    int i, n;
+    n = pt->nRoutes;
+    t.i = 0;
+    t.p = calloc(n, sizeof(routeEnt));
+    if (!t.p) {
+        return false;
+    }
+    /*
+     * Pass 1. Collect all prefixes.
+     */
+    rtArtDFwalk(pt, pt->root, collectRoutes, &t);
+    /*
+     * Pass 2. Delete them.
+     */
+    for (i = 0; i < n; ++i) {
+        if (!pt->delete(pt, t.p[i].dest, t.p[i].plen)) {
+            rc = false;
+            assert(1);
+        }
+    }
+    free(t.p);
+    return rc;
+}
+
+
+/**
+ * @name  rtArtDestroy
+ *
+ * @brief API Function.
+ *        (registered as `pt->deleteTable()').
+ *        Delete all the route entries in the routing table, then
+ *        Free the routing table itself.
+ * @param[in,out] p Pointer to the pointer to `rtTable'. `*p' is
+ *                  set to NULL at the end of this function.
+ */
+static void
+rtArtDestroy (rtTable** p)
+{
+    rtTable* pt = *p;
+
+    pt->flush(pt);
+    free(pt->root - 1);
+    free(pt->pTbl);
+    free(pt->pEnt);
+    free(pt->psi);
+    free(pt);
+    *p = NULL;
 }
 
 
@@ -1021,6 +1138,8 @@ rtArtInit (int nLevels, s8* psl, int alen, trieType type)
 
     pt->insert         = rtArtInsertRoute;
     pt->delete         = rtArtDeleteRoute;
+    pt->deleteTable    = rtArtDestroy;
+    pt->flush          = rtArtFlushRoutes;
     pt->findMatch      = rtArtFindMatch;
     pt->findExactMatch = rtArtFindExactMatch;
 

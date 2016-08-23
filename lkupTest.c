@@ -16,6 +16,8 @@ enum {
     UNLOAD     = '7',
     LKUP_TEST  = '8',
     MAKE_TBL   = '9',
+    FLUSH      = 'a',
+    DESTROY    = 'b',
     EXIT       = 0x71,
 
     MAX_LEVEL  = 32,
@@ -38,6 +40,7 @@ typedef void (*pInspect)(rtTable* pt, routeEnt* pEnt, int l, u8* pDef);
 
 u32     mkRtTbl(rtTable* pt);
 void    rmRtTbl(rtTable* pt);
+void    flushRoutes (rtTable* pt);
 void    showMenu();
 void    lookUpRoute(int af);
 void    lookupTest(rtTable *pt);
@@ -196,6 +199,8 @@ showMenu ()
     printf("%4d: unload all routes\n", UNLOAD - '0');
     printf("%4d: lookup test (exact match and LPM)\n", LKUP_TEST - '0');
     printf("%4d: make table\n", MAKE_TBL - '0');
+    printf("%4c: flush routes\n", FLUSH);
+    printf("%4c: destroy routing table\n", DESTROY);
     printf("%4c: exit\n", EXIT);
     printf("Select item: ");
 }
@@ -284,7 +289,7 @@ main (int argc, char *argv[])
         }
         if (*buf == EXIT) exit(0);
 
-        c = atoi(buf) + '0';
+        c = buf[0];
         if ((Ptable == NULL)
             && (c != MAKE_TBL) && (c != LOAD) && (c != EXIT)) {
             printf("Routing table does not exist.\n");
@@ -329,7 +334,7 @@ main (int argc, char *argv[])
                   rmRtTbl(Ptable);
               }
               break;
-        case LKUP_TEST:
+          case LKUP_TEST:
             lookupTest(Ptable);
             break;
           case MAKE_TBL:
@@ -340,6 +345,12 @@ main (int argc, char *argv[])
             Ptable = defineTable(ver, type, sl);
             assert(Ptable);
             break;
+          case FLUSH:
+              flushRoutes(Ptable);
+              break;
+          case DESTROY:
+              Ptable->deleteTable(&Ptable);
+              break;
           default:
             break;
         }
@@ -439,7 +450,11 @@ printRtTableRange (rtTable* p)
     r.pEnd   = end;
     r.len    = p->alen;
 
+#if 1
+    rtArtDFwalk(p, p->root, prRoute, &r);
+#else
     rtArtWalkTable(p, p->root, 1, 1 << p->psi[0].sl, prRoute, &r);
+#endif
 }
 
 
@@ -533,6 +548,16 @@ rmRtTbl (rtTable* pt)
     printf("%d subtables were freed.\n", pt->nSubtablesFreed);
 }
 
+
+void
+flushRoutes (rtTable* pt)
+{
+    int nRoutes = pt->nRoutes;
+    pt->nSubtablesFreed = 0;
+    pt->flush(pt);
+    printf("Routes: %d -> %d\n", nRoutes, pt->nRoutes);
+    printf("%d subtables were freed.\n", pt->nSubtablesFreed);
+}
 
 boolean
 getSearchPerf (int alen, trieType type, char* sl, int nLevels)

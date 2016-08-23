@@ -4,7 +4,7 @@
 
    ART: Allotment Routing Table
 
-   Copyright (c) 2001-2015
+   Copyright (c) 2001-2016
    Yoichi Hariguchi. All rights reserved.
 
    The algorithm of ART is invented by Donald Knuth in 2000 while he was
@@ -472,6 +472,7 @@ rtArtInsert (rtTable* pt, subtable t, int k,
  * @name  rtArtPcFindMatch
  *
  * @brief API Function.
+ *        (registered as `pt->findMatch()' in `rtArtPcInit()').
  *        Performs the longest prefix match.
  *
  * @param[in] pt    Pointer to the routing table
@@ -480,7 +481,7 @@ rtArtInsert (rtTable* pt, subtable t, int k,
  * @retval routeEnt* Pointer to the found route entry (success)
  * @retval NULL      Failed to find a matching route entry
  */
-routeEnt *
+static routeEnt *
 rtArtPcFindMatch (rtTable* pt, u8* pDest)
 {
     register tableEntry   ent;
@@ -540,6 +541,7 @@ rtArtPcFindMatch (rtTable* pt, u8* pDest)
  * @name  rtArtPcFindExactMatch
  *
  * @brief API Function.
+ *        (registered as `pt->findExactMatch()' in `rtArtPcInit()').
  *        Performs the exact match (address + prefix length.)
  *
  * @param[in] pt    Pointer to the routing table
@@ -549,7 +551,7 @@ rtArtPcFindMatch (rtTable* pt, u8* pDest)
  * @retval routeEnt* Pointer to the found route entry (success)
  * @retval NULL      Failed to find a matching route entry
  */
-routeEnt *
+static routeEnt *
 rtArtPcFindExactMatch (rtTable* pt, u8* pDest, int plen)
 {
     register tableEntry  ent = {0};
@@ -712,10 +714,11 @@ insertNewSubtable (rtTable* p, routeEnt* pEnt,
 
 
 /**
- * @name   rtArtPcInsertRoute
+ * @name  rtArtPcInsertRoute
  *
- * @brief  API function.
- *         Adds a route represented by `pEnt' to the routing table `pt'
+ * @brief API function.
+ *        (registered as `pt->insert()' in `rtArtPcInit()').
+ *        Adds a route represented by `pEnt' to the routing table `pt'
  *
  * @param[in] pt   Pointer to the routing table
  * @param[in] pEnt Pointer to the route added to `pt'.
@@ -727,7 +730,7 @@ insertNewSubtable (rtTable* p, routeEnt* pEnt,
  *                   `pEnt' must be freed in this case.
  *                   
  */
-routeEnt*
+static routeEnt*
 rtArtPcInsertRoute (rtTable* pt, routeEnt* pEnt)
 {
     register int l, sl, endBit;
@@ -974,12 +977,13 @@ rtArtPcDelete (rtTable* pt, pcSubtbls* pPcSt,
 
 
 /**
- * @name   rtArtPcDeleteRoute
+ * @name  rtArtPcDeleteRoute
  *
- * @brief  API function.
- *         Deletes a route represented by an IP prefix (
- *         (address and its prefix length) from the routing table
- *         The matched route entry is freed in this function.
+ * @brief API function.
+ *        (registered as `pt->delete()' in `rtArtPcInit()').
+ *        Deletes a route represented by an IP prefix
+ *        (address and its prefix length) from the routing table.
+ *        The matched route entry is freed in this function.
  *
  * @param[in] pt    Pointer to the routing table
  * @param[in] pDest Pointer to the IP address to be deleted from `pt'
@@ -1054,6 +1058,32 @@ exit:
 
 
 /**
+ * @name  rtArtPcDestroy
+ *
+ * @brief API Function.
+ *        (registered as `pt->deleteTable()').
+ *        Delete all the route entries in the routing table, then
+ *        Free the routing table itself.
+ * @param[in,out] p Pointer to the pointer to `rtTable'. `*p' is
+ *                  set to NULL at the end of this function.
+ */
+static void
+rtArtPcDestroy (rtTable** p)
+{
+    rtTable* pt = *p;
+
+    pt->flush(pt);
+    free(pt->pPcSt);
+    free(pt->root + pt->off);
+    free(pt->pTbl);
+    free(pt->pEnt);
+    free(pt->psi);
+    free(pt);
+    *p = NULL;
+}
+
+
+/**
  * @name  rtArtPcInit
  *
  * @brief Initializes a path-compressed routing table
@@ -1091,6 +1121,8 @@ rtArtPcInit (rtTable *pt)
 
     pt->insert         = rtArtPcInsertRoute;
     pt->delete         = rtArtPcDeleteRoute;
+    pt->deleteTable    = rtArtPcDestroy;
+    pt->flush          = rtArtFlushRoutes;
     pt->findMatch      = rtArtPcFindMatch;
     pt->findExactMatch = rtArtPcFindExactMatch;
 

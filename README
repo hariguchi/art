@@ -131,10 +131,24 @@ rtArtInit (int nLevels, s8* psl, int alen, trieType type)
 
 Hereafter, let the routing table pointer be:
 
-  rtTable*  pt;   /* Pointer to the routing table */
+  rtTable* pt;   /* Pointer to the routing table */
 
 
-6.2. Insertion
+6.2. Memory Allocation for a New Route
+
+routeEnt*
+rtArtNewRoute(rtTable* pt)
+
+ @brief  API function.
+         Allocates memory for a new route entry.
+ 
+ @param[in] pt Pointer to the routing table
+ 
+ @retval routeEnt* Pointer to the newly allocated route.
+ @retval NULL      There was no memory for a new route.
+
+
+6.3. Insertion
 
 routeEnt*
 pt->insert(rtTable pt, routeEnt* pEnt)
@@ -152,7 +166,7 @@ pt->insert(rtTable pt, routeEnt* pEnt)
                    `pEnt' must be freed in this case.
 
 
-6.3. Deletion
+6.4. Deletion
 
 bool
 pt->delete(rtTable pt, u8* dest, int plen)
@@ -171,7 +185,7 @@ pt->delete(rtTable pt, u8* dest, int plen)
  @retval false If there is no matching route in `pt'.
 
 
-6.4. Longest Prefix Match
+6.5. Longest Prefix Match
 
 routeEnt*
 pt->findMatch(rtTable* pt, u8* pDest)
@@ -186,7 +200,7 @@ pt->findMatch(rtTable* pt, u8* pDest)
  @retval NULL      There was no matching route for `pDest'
 
 
-6.5. Exact Route Match
+6.6. Exact Route Match
 
 routeEnt *
 pt->findExactMatch(rtTable* pt, u8* pDest, int plen)
@@ -200,3 +214,23 @@ pt->findExactMatch(rtTable* pt, u8* pDest, int plen)
 
  @retval routeEnt* Pointer to the found route entry (success)
  @retval NULL      Failed to find a matching route entry
+
+
+6.7. Delete All Routes
+
+pt->flush(rtTable* pt)
+
+ @brief API Function.
+        Delete all the route entries in the routing table.
+ @param[in] pt Pointer to the routing table
+
+
+6.8. Delete the Routing Table
+
+ void pt->deleteTable(rtTable** p)
+
+ @brief API Function.
+        Delete all the route entries in the routing table, then
+        Free the routing table itself.
+ @param[in,out] p Pointer to the pointer to `rtTable'. `*p' is
+                  set to NULL at the end of this function.

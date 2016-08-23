@@ -81,10 +81,6 @@ struct pcSubtbls {
     int      idx;
 };
 
-enum {
-    RT_FLAG_FLUSH = 0x1,
-};        
-
 typedef struct rtTable rtTable;
 struct rtTable {
     tableEntry*  root;    /* pointer to root subtable */
@@ -99,12 +95,11 @@ struct rtTable {
     u16          len;     /* address length in bytes */
     s16          off;     /* -1 - byte2nPtrs(len) */
     u16          nLevels; /* number of levels */
-    u32          flags;
 
     routeEnt* (*insert)(rtTable* p, routeEnt* r);
     bool (*delete)(rtTable* p, u8* pDest, int plen);
-    void (*flush)(rtTable* pt);
-    void (*deleteTable)(rtTable* pt);
+    bool (*flush)(rtTable* pt);
+    void (*deleteTable)(rtTable** pt);
     routeEnt* (*findMatch)(rtTable *p, u8* pDest);
     routeEnt* (*findExactMatch)(rtTable *p, u8* pDest, int plen);
 
@@ -136,26 +131,17 @@ routeEnt* rtArtNewRoute(rtTable *pt);
 void      rtArtFreeRoute(rtTable *pt, routeEnt *);
 rtTable*  rtArtInit(int nLevels, s8* psl, int alen, trieType type);
 rtTable*  rtArtPcInit(rtTable* pt);
-routeEnt* rtArtFindMatch(rtTable *pt, u8* pDest);
-routeEnt* rtArtPcFindMatch(rtTable *pt, u8* pDest);
-routeEnt* rtArtPcFindMatch(rtTable *pt, u8* pDest);
-routeEnt* rtArtFindMatchStat(rtTable* pt, u8* pDest);
-routeEnt* rtArtPcFindMatchStat(rtTable* pt, u8* pDest);
-routeEnt* rtArtInsertRoute(rtTable *pt, routeEnt *r);
-routeEnt* rtArtPcInsertRoute(rtTable *pt, routeEnt *r);
-bool      rtArtDeleteRoute(rtTable *pt, u8* pDest, int plen);
-bool      rtArtPcDeleteRoute(rtTable *pt, u8* pDest, int plen);
+bool      rtArtFlushRoutes(rtTable* pt);
 void      rtArtWalkTable(rtTable* pt, subtable p, int index,
                          int thresh, rtFunc f, void* p2);
-void      rtArtBFwalk (rtTable* pt, subtable p, rtFunc f, void* p2);
-void      rtArtDFwalk (rtTable* pt, subtable p, rtFunc f, void* p2);
+void      rtArtBFwalk(rtTable* pt, subtable p, rtFunc f, void* p2);
+void      rtArtDFwalk(rtTable* pt, subtable p, rtFunc f, void* p2);
 void      rtArtCollectStats(rtTable* pt, subtable ps);
 
 
 /*
  * Inline functions
  */
-
 
 /**
  * @name  bitCmp8
