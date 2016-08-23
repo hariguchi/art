@@ -13,3 +13,10 @@
 2015-07-10  1.6  Modified IPv6 test to support up to /128 routes.
 2015-07-17  1.7  Added support for >8 bit stride length subtables to
                  path-compressed trie
+2016-08-22  1.8  Added the following features:
+                  1. Flush Routes: This feature deletes all the
+                     routes from the routing table.
+                  2. Delete Routing Table: This feature first
+                     delete all the routes by calling flush
+                     route function, then delete the routing
+                     table itself and free its memory.
