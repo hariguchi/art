@@ -1,5 +1,5 @@
 /*
-   Copyright (c) 2001-2015
+   Copyright (c) 2001-2016
    Yoichi Hariguchi. All rights reserved.
 
    The algorithm of ART is invented by Donald Knuth in 2000 while he was
