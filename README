@@ -234,3 +234,10 @@ pt->flush(rtTable* pt)
         Free the routing table itself.
  @param[in,out] p Pointer to the pointer to `rtTable'. `*p' is
                   set to NULL at the end of this function.
+
+7. Notes
+
+ART is the default FIB in OpenBSD (>=6.0.)
+
+http://www.grenadille.net/post/2016/06/17/ART-single-thread-performances
+
