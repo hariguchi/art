@@ -264,8 +264,8 @@ checkSubtable (rtTable* pt, subtable t, bool* flag)
  * @brief Allocates a new subtable (trie node) of the given level.
  *
  * @param[in] p     Pointer to the routing table
- * @param[in] level 
- * @param[in] base  Subtable (trie node) default route. Assume a 
+ * @param[in] level
+ * @param[in] base  Subtable (trie node) default route. Assume a
  *                  newly allocated subtable (pst) is connected to
  *                  the index (i) of parent subtable (pn). `base'
  *                  must be pn[i].ent if pn[i] is a route entry.
@@ -277,7 +277,7 @@ rtArtPcNewSubTable (rtTable* p, int level, tableEntry base, u8* pa)
     register subtable t;
     register int a;
     size_t len;
-    
+
 
     assert(p && pa && level >= 0 && level < p->nLevels);
 
@@ -614,7 +614,7 @@ AddrComp:
  * @name  insertNewSubtable
  *
  * @brief Inserts a new subtable (trie node)
- *        
+ *
  *
  * @param[in] p     Pointer to the routing table
  * @param[in] pEnt  Pointer to the route entry to be inserted
@@ -728,7 +728,7 @@ insertNewSubtable (rtTable* p, routeEnt* pEnt,
  *         pEnt      There is an existing route that has the same
  *                   IP prefix (address and prefix length).
  *                   `pEnt' must be freed in this case.
- *                   
+ *
  */
 static routeEnt*
 rtArtPcInsertRoute (rtTable* pt, routeEnt* pEnt)
@@ -1012,6 +1012,7 @@ rtArtPcDeleteRoute (rtTable* pt, u8* pDest, int plen)
      * Handle default route
      */
     if (plen == 0) {
+        if ( pt->root[1].ent == NULL ) return false;
         rtArtFreeRoute(pt, pt->root[1].ent);
         pt->root[1].ent = NULL;
         --pt->nRoutes;
@@ -1075,7 +1076,6 @@ rtArtPcDestroy (rtTable** p)
     pt->flush(pt);
     free(pt->pPcSt);
     free(pt->root + pt->off);
-    free(pt->pTbl);
     free(pt->pEnt);
     free(pt->psi);
     free(pt);
