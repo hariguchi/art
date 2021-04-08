@@ -147,7 +147,7 @@ void      rtArtCollectStats(rtTable* pt, subtable ps);
  * @name  bitCmp8
  *
  * @brief Compare between arbitrary bits of a byte
- *        
+ *
  *
  * @param[in] d1  Data 1 (one byte) to be compared.
  * @param[in] d2  Data 2 (one byte) to be compared.
@@ -177,7 +177,7 @@ bitCmp8 (u8 p1, u8 p2, int st, int end)
  * @name  bitStrCmp
  *
  * @brief Compare two bit strings
- *        
+ *
  *
  * @param[in] p1  Pointer to bit string 1 to be compared.
  * @param[in] p2  Pointer to bit string 2 to be compared.
@@ -298,7 +298,7 @@ cmpAddr (u8* p1, u8* p2, int plen)
             return false;
         }
     }
-    if ( len == plen ) {
+    if ( len == plen + 8 ) {
         return true;
     }
 

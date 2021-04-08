@@ -477,7 +477,7 @@ rtArtFreeRoute (rtTable* pt, routeEnt* r)
  *         pEnt      There is an existing route that has the same
  *                   IP prefix (address and prefix length).
  *                   `pEnt' must be freed in this case.
- *                   
+ *
  */
 static routeEnt*
 rtArtInsertRoute (rtTable* pt, routeEnt* pEnt)
@@ -584,7 +584,6 @@ rtArtDeleteRoute (rtTable* pt, u8* pDest, int plen)
     if ( plen == 0 ) {
         pEnt = pt->root[1].ent;
         pt->root[1].ent = NULL;
-        pt->nRoutes--;
         goto FreeAndReturn;
     }
 
@@ -627,6 +626,7 @@ rtArtDeleteRoute (rtTable* pt, u8* pDest, int plen)
 
 FreeAndReturn:
     if ( pEnt == NULL ) return false;
+    pt->nRoutes--;
     rtArtFreeRoute(pt, pEnt);
     return true;
 }
