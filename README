@@ -239,5 +239,4 @@ pt->flush(rtTable* pt)
 
 ART is the default FIB in OpenBSD (>=6.0.)
 
-http://www.grenadille.net/post/2016/06/17/ART-single-thread-performances
-
+https://github.com/openbsd/src/blob/master/sys/net/art.c
